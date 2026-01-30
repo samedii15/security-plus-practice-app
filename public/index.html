@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CompTIA Security+ Practice Exam</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header id="header">
+        <div class="header-content">
+            <h1>CompTIA Security+ Practice Exam</h1>
+            <div id="header-info">
+                <button id="theme-toggle" class="theme-toggle" title="Toggle theme">🌙</button>
+                <span id="user-email"></span>
+                <button id="logout-btn" class="btn btn-secondary" style="display: none;">Logout</button>
+            </div>
+        </div>
+        <div id="timer-bar" style="display: none;">
+            <div class="timer-content">
+                <span id="timer">90:00</span>
+                <button id="submit-exam-btn" class="btn btn-primary">Submit Exam</button>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <!-- Login Screen -->
+        <div id="login-screen" class="screen active">
+            <div class="auth-container">
+                <h2>Login</h2>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="login-email">Email</label>
+                        <input type="email" id="login-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                    <p class="auth-switch">
+                        Don't have an account? <a href="#" id="show-register">Register here</a>
+                    </p>
+                    <div id="login-error" class="error-message"></div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Register Screen -->
+        <div id="register-screen" class="screen">
+            <div class="auth-container">
+                <h2>Register</h2>
+                <form id="register-form">
+                    <div class="form-group">
+                        <label for="register-email">Email</label>
+                        <input type="email" id="register-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">Password (min 8 characters)</label>
+                        <input type="password" id="register-password" required minlength="8">
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password-confirm">Confirm Password</label>
+                        <input type="password" id="register-password-confirm" required minlength="8">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Register</button>
+                    <p class="auth-switch">
+                        Already have an account? <a href="#" id="show-login">Login here</a>
+                    </p>
+                    <div id="register-error" class="error-message"></div>
+                    <div id="register-success" class="success-message"></div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Dashboard Screen -->
+        <div id="dashboard-screen" class="screen">
+            <div class="dashboard-container">
+                <h2>Welcome to CompTIA Security+ Practice Exam</h2>
+                <div class="dashboard-actions">
+                    <button id="start-exam-btn" class="btn btn-primary btn-large">Start New Exam</button>
+                    <button id="view-analytics-btn" class="btn btn-primary btn-large">📊 View Analytics</button>
+                    <button id="retake-missed-btn" class="btn btn-secondary btn-large">Retake Missed Questions</button>
+                    <button id="view-history-btn" class="btn btn-secondary btn-large">View Exam History</button>
+                </div>
+                <div class="exam-info">
+                    <h3>Exam Information</h3>
+                    <ul>
+                        <li>90 questions per exam</li>
+                        <li>90 minutes time limit</li>
+                        <li>Passing score: 75%</li>
+                        <li>Questions are randomly selected from the question bank</li>
+                        <li>You can mark questions for review and navigate between them</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Exam Screen -->
+        <div id="exam-screen" class="screen">
+            <div class="exam-layout">
+                <div class="exam-sidebar">
+                    <h3>Question Navigator</h3>
+                    <div id="question-grid" class="question-grid"></div>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <span class="legend-color answered"></span>
+                            <span>Answered</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color marked"></span>
+                            <span>Marked</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color current"></span>
+                            <span>Current</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="exam-main">
+                    <div class="question-header">
+                        <h3>Question <span id="current-question-num">1</span> of 90</h3>
+                        <div class="question-actions">
+                            <button id="mark-review-btn" class="btn btn-secondary">Mark for Review</button>
+                            <button id="clear-answer-btn" class="btn btn-secondary">Clear Answer</button>
+                        </div>
+                    </div>
+                    <div id="question-container" class="question-container">
+                        <p id="question-text" class="question-text"></p>
+                        <div id="choices-container" class="choices-container">
+                            <!-- Radio options will be inserted here -->
+                        </div>
+                    </div>
+                    <div class="question-navigation">
+                        <button id="prev-btn" class="btn btn-secondary">← Previous</button>
+                        <button id="next-btn" class="btn btn-primary">Next →</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Screen -->
+        <div id="results-screen" class="screen">
+            <div class="results-container">
+                <h2>Exam Results</h2>
+                <div id="score-summary" class="score-summary">
+                    <!-- Score details will be inserted here -->
+                </div>
+                <div id="domain-breakdown" class="domain-breakdown">
+                    <h3>Domain Performance</h3>
+                    <div id="domain-stats"></div>
+                </div>
+                <div class="results-actions">
+                    <button id="review-answers-btn" class="btn btn-primary">Review Answers</button>
+                    <button id="back-dashboard-btn" class="btn btn-secondary">Back to Dashboard</button>
+                </div>
+                <div id="review-container" class="review-container" style="display: none;">
+                    <h3>Answer Review</h3>
+                    <div id="review-questions"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Screen -->
+        <div id="history-screen" class="screen">
+            <div class="history-container">
+                <h2>Exam History</h2>
+                <button id="back-from-history-btn" class="btn btn-secondary">Back to Dashboard</button>
+                <div id="history-list" class="history-list">
+                    <!-- History items will be inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Exam Review Screen -->
+        <div id="exam-review-screen" class="screen">
+            <div class="review-detail-container">
+                <h2>Exam Review</h2>
+                <button id="back-from-review-btn" class="btn btn-secondary">Back to History</button>
+                <div id="review-summary" class="review-summary"></div>
+                <div id="review-detail-questions" class="review-container"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 CompTIA Security+ Practice Exam | For educational purposes only</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

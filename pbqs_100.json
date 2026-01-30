@@ -1,0 +1,2610 @@
+[
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Medium",
+    "question": "Select ALL controls that best reduce data exfiltration from endpoints.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "Select ALL controls that best reduce data exfiltration from endpoints.",
+      "options": [
+        "DLP",
+        "WAF",
+        "Application allowlisting",
+        "Full disk encryption",
+        "IDS"
+      ],
+      "correct": [
+        0,
+        2
+      ]
+    },
+    "explanation": "DLP helps prevent exfiltration and allowlisting prevents unapproved tools. WAF is web-only; FDE protects at rest; IDS detects but doesn’t prevent exfiltration by itself."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Medium",
+    "question": "Select ALL items that provide authenticated encryption (confidentiality + integrity).",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "Select ALL items that provide authenticated encryption (confidentiality + integrity).",
+      "options": [
+        "AES-GCM",
+        "AES-ECB",
+        "AES-CBC + HMAC",
+        "ChaCha20-Poly1305",
+        "DES-CBC"
+      ],
+      "correct": [
+        0,
+        2,
+        3
+      ]
+    },
+    "explanation": "AES-GCM and ChaCha20-Poly1305 are AEAD. CBC needs a separate MAC (CBC+HMAC can provide integrity). ECB and DES are not appropriate."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Threats, Vulnerabilities & Mitigations",
+    "difficulty": "Medium",
+    "question": "Select ALL indicators that most strongly suggest credential stuffing.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "Select ALL indicators that most strongly suggest credential stuffing.",
+      "options": [
+        "Many login attempts from a few IPs",
+        "Many different usernames from the same IP",
+        "A spike in successful logins from new geolocations",
+        "High CPU on database server",
+        "Repeated use of known breached passwords"
+      ],
+      "correct": [
+        1,
+        4,
+        2
+      ]
+    },
+    "explanation": "Credential stuffing typically shows many username/password attempts, often from automation, with reused/breached passwords and unusual login patterns."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Medium",
+    "question": "A ransomware infection is confirmed on several endpoints. Put the incident response steps in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A ransomware infection is confirmed on several endpoints. Put the incident response steps in the BEST order.",
+      "items": [
+        "Contain affected hosts",
+        "Identify scope and affected systems",
+        "Eradicate malware/root cause",
+        "Recover services from backups",
+        "Lessons learned meeting"
+      ],
+      "correct_order": [
+        1,
+        0,
+        2,
+        3,
+        4
+      ]
+    },
+    "explanation": "Best practice is identify/confirm scope, contain spread, eradicate root cause, recover, then do lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Architecture",
+    "difficulty": "Medium",
+    "question": "A certificate is expiring soon. Put the PKI steps in the BEST order to renew it.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A certificate is expiring soon. Put the PKI steps in the BEST order to renew it.",
+      "items": [
+        "Generate a new key pair",
+        "Create a CSR",
+        "Submit CSR to CA",
+        "Install issued certificate",
+        "Update services and validate"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    "explanation": "Typically you generate keys, create CSR, submit to CA, install, and validate services."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Medium",
+    "question": "Match each item to the BEST category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each item to the BEST category.",
+      "left": [
+        "MFA",
+        "TLS",
+        "RBAC",
+        "Hashing"
+      ],
+      "right": [
+        "Authentication",
+        "Encryption in transit",
+        "Authorization",
+        "Integrity"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "MFA verifies identity, TLS encrypts in transit, RBAC controls authorization, hashing supports integrity verification."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Medium",
+    "question": "Match the security control to what it MOST directly helps prevent.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match the security control to what it MOST directly helps prevent.",
+      "left": [
+        "WAF",
+        "DLP",
+        "IDS",
+        "IPS"
+      ],
+      "right": [
+        "Web exploits (e.g., SQLi/XSS)",
+        "Sensitive data exfiltration",
+        "Detect malicious traffic",
+        "Block malicious traffic"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "WAF is web-layer, DLP is exfiltration, IDS detects, IPS blocks."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Medium",
+    "question": "A security incident is reported affecting a container cluster. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a container cluster. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Hard",
+    "question": "A team is hardening a public web portal. Select ALL controls that MOST directly reduce the risk of CSRF.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a public web portal. Select ALL controls that MOST directly reduce the risk of CSRF.",
+      "options": [
+        "SameSite cookies",
+        "Parameterize queries",
+        "IDS",
+        "Anti-CSRF tokens",
+        "SPF/DKIM/DMARC"
+      ],
+      "correct": [
+        0,
+        3
+      ]
+    },
+    "explanation": "For CSRF, the most direct controls are: Anti-CSRF tokens, SameSite cookies."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Easy",
+    "question": "A security incident is reported affecting a API gateway. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a API gateway. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Program Management & Oversight",
+    "difficulty": "Medium",
+    "question": "A team is hardening a public web portal. Select ALL controls that MOST directly reduce the risk of pass-the-hash.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a public web portal. Select ALL controls that MOST directly reduce the risk of pass-the-hash.",
+      "options": [
+        "Disable Ntlm Where Possible And Use Credential Guard",
+        "Anti-CSRF tokens",
+        "DLP",
+        "SPF/DKIM/DMARC",
+        "IPS"
+      ],
+      "correct": [
+        0
+      ]
+    },
+    "explanation": "For pass-the-hash, the most direct controls are: Disable Ntlm Where Possible And Use Credential Guard."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Medium",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Hard",
+    "question": "A team is hardening a cloud storage bucket. Select ALL controls that MOST directly reduce the risk of XSS.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a cloud storage bucket. Select ALL controls that MOST directly reduce the risk of XSS.",
+      "options": [
+        "SameSite cookies",
+        "Rate limiting",
+        "Content Security Policy (CSP)",
+        "IDS",
+        "WAF"
+      ],
+      "correct": [
+        2,
+        4
+      ]
+    },
+    "explanation": "For XSS, the most direct controls are: Output encoding, Content Security Policy (CSP), WAF."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Hard",
+    "question": "A security incident is reported affecting a API gateway. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a API gateway. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Program Management & Oversight",
+    "difficulty": "Hard",
+    "question": "A team is hardening a container cluster. Select ALL controls that MOST directly reduce the risk of XSS.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a container cluster. Select ALL controls that MOST directly reduce the risk of XSS.",
+      "options": [
+        "Content Security Policy (CSP)",
+        "Output encoding",
+        "IDS",
+        "SPF/DKIM/DMARC",
+        "WAF"
+      ],
+      "correct": [
+        0,
+        1,
+        4
+      ]
+    },
+    "explanation": "For XSS, the most direct controls are: Output encoding, Content Security Policy (CSP), WAF."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Hard",
+    "question": "A team is hardening a Windows domain. Select ALL controls that MOST directly reduce the risk of credential stuffing.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a Windows domain. Select ALL controls that MOST directly reduce the risk of credential stuffing.",
+      "options": [
+        "SPF/DKIM/DMARC",
+        "MFA",
+        "Rate limiting",
+        "IPS",
+        "Security awareness training"
+      ],
+      "correct": [
+        1,
+        2
+      ]
+    },
+    "explanation": "For credential stuffing, the most direct controls are: MFA, Rate limiting."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Easy",
+    "question": "A security incident is reported affecting a container cluster. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a container cluster. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Hard",
+    "question": "A team is hardening a VPN concentrator. Select ALL controls that MOST directly reduce the risk of pass-the-hash.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a VPN concentrator. Select ALL controls that MOST directly reduce the risk of pass-the-hash.",
+      "options": [
+        "WAF",
+        "MFA",
+        "Security awareness training",
+        "Disable Ntlm Where Possible And Use Credential Guard",
+        "SameSite cookies"
+      ],
+      "correct": [
+        3
+      ]
+    },
+    "explanation": "For pass-the-hash, the most direct controls are: Disable Ntlm Where Possible And Use Credential Guard."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Easy",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Medium",
+    "question": "A security incident is reported affecting a API gateway. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a API gateway. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Easy",
+    "question": "A security incident is reported affecting a container cluster. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a container cluster. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Program Management & Oversight",
+    "difficulty": "Hard",
+    "question": "A team is hardening a cloud storage bucket. Select ALL controls that MOST directly reduce the risk of CSRF.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a cloud storage bucket. Select ALL controls that MOST directly reduce the risk of CSRF.",
+      "options": [
+        "MFA",
+        "Security awareness training",
+        "Network segmentation",
+        "SameSite cookies",
+        "Anti-CSRF tokens"
+      ],
+      "correct": [
+        3,
+        4
+      ]
+    },
+    "explanation": "For CSRF, the most direct controls are: Anti-CSRF tokens, SameSite cookies."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Medium",
+    "question": "A team is hardening a email gateway. Select ALL controls that MOST directly reduce the risk of phishing.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a email gateway. Select ALL controls that MOST directly reduce the risk of phishing.",
+      "options": [
+        "DLP",
+        "Output encoding",
+        "Parameterize queries",
+        "Security awareness training",
+        "Email Filtering And User Awareness"
+      ],
+      "correct": [
+        4
+      ]
+    },
+    "explanation": "For phishing, the most direct controls are: Email Filtering And User Awareness."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Medium",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Easy",
+    "question": "A security incident is reported affecting a email gateway. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a email gateway. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Hard",
+    "question": "A security incident is reported affecting a public web portal. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a public web portal. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Easy",
+    "question": "A security incident is reported affecting a cloud storage bucket. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a cloud storage bucket. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Hard",
+    "question": "A security incident is reported affecting a API gateway. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a API gateway. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Medium",
+    "question": "A security incident is reported affecting a public web portal. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a public web portal. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Medium",
+    "question": "A team is hardening a Windows domain. Select ALL controls that MOST directly reduce the risk of CSRF.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a Windows domain. Select ALL controls that MOST directly reduce the risk of CSRF.",
+      "options": [
+        "Content Security Policy (CSP)",
+        "Rate limiting",
+        "Anti-CSRF tokens",
+        "SameSite cookies",
+        "SPF/DKIM/DMARC"
+      ],
+      "correct": [
+        2,
+        3
+      ]
+    },
+    "explanation": "For CSRF, the most direct controls are: Anti-CSRF tokens, SameSite cookies."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Easy",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Threats, Vulnerabilities & Mitigations",
+    "difficulty": "Easy",
+    "question": "A team is hardening a API gateway. Select ALL controls that MOST directly reduce the risk of phishing.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a API gateway. Select ALL controls that MOST directly reduce the risk of phishing.",
+      "options": [
+        "Anti-CSRF tokens",
+        "Parameterize queries",
+        "Email Filtering And User Awareness",
+        "IPS",
+        "Content Security Policy (CSP)"
+      ],
+      "correct": [
+        2
+      ]
+    },
+    "explanation": "For phishing, the most direct controls are: Email Filtering And User Awareness."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Easy",
+    "question": "A security incident is reported affecting a email gateway. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a email gateway. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Hard",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Hard",
+    "question": "A security incident is reported affecting a cloud storage bucket. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a cloud storage bucket. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Hard",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Medium",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Medium",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Easy",
+    "question": "A security incident is reported affecting a email gateway. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a email gateway. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Easy",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Threats, Vulnerabilities & Mitigations",
+    "difficulty": "Medium",
+    "question": "A team is hardening a API gateway. Select ALL controls that MOST directly reduce the risk of SQL injection.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a API gateway. Select ALL controls that MOST directly reduce the risk of SQL injection.",
+      "options": [
+        "MFA",
+        "IPS",
+        "Parameterize queries",
+        "Output encoding",
+        "WAF"
+      ],
+      "correct": [
+        2,
+        4
+      ]
+    },
+    "explanation": "For SQL injection, the most direct controls are: Parameterize queries, WAF."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Program Management & Oversight",
+    "difficulty": "Easy",
+    "question": "A team is hardening a VPN concentrator. Select ALL controls that MOST directly reduce the risk of pass-the-hash.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a VPN concentrator. Select ALL controls that MOST directly reduce the risk of pass-the-hash.",
+      "options": [
+        "Parameterize queries",
+        "Disable Ntlm Where Possible And Use Credential Guard",
+        "Anti-CSRF tokens",
+        "IPS",
+        "Rate limiting"
+      ],
+      "correct": [
+        1
+      ]
+    },
+    "explanation": "For pass-the-hash, the most direct controls are: Disable Ntlm Where Possible And Use Credential Guard."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Medium",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Easy",
+    "question": "A security incident is reported affecting a public web portal. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a public web portal. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Medium",
+    "question": "A security incident is reported affecting a email gateway. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a email gateway. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Easy",
+    "question": "A security incident is reported affecting a public web portal. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a public web portal. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Hard",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Hard",
+    "question": "A security incident is reported affecting a public web portal. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a public web portal. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Program Management & Oversight",
+    "difficulty": "Medium",
+    "question": "A team is hardening a API gateway. Select ALL controls that MOST directly reduce the risk of phishing.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a API gateway. Select ALL controls that MOST directly reduce the risk of phishing.",
+      "options": [
+        "IDS",
+        "Parameterize queries",
+        "SPF/DKIM/DMARC",
+        "Email Filtering And User Awareness",
+        "SameSite cookies"
+      ],
+      "correct": [
+        3
+      ]
+    },
+    "explanation": "For phishing, the most direct controls are: Email Filtering And User Awareness."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Hard",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Medium",
+    "question": "A security incident is reported affecting a API gateway. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a API gateway. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Hard",
+    "question": "A security incident is reported affecting a Windows domain. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a Windows domain. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Hard",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Easy",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Easy",
+    "question": "A security incident is reported affecting a Windows domain. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a Windows domain. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Hard",
+    "question": "A security incident is reported affecting a public web portal. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a public web portal. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Architecture",
+    "difficulty": "Medium",
+    "question": "A team is hardening a VPN concentrator. Select ALL controls that MOST directly reduce the risk of XSS.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a VPN concentrator. Select ALL controls that MOST directly reduce the risk of XSS.",
+      "options": [
+        "Content Security Policy (CSP)",
+        "IPS",
+        "Output encoding",
+        "WAF",
+        "Network segmentation"
+      ],
+      "correct": [
+        0,
+        2,
+        3
+      ]
+    },
+    "explanation": "For XSS, the most direct controls are: Output encoding, Content Security Policy (CSP), WAF."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Easy",
+    "question": "A team is hardening a email gateway. Select ALL controls that MOST directly reduce the risk of XSS.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a email gateway. Select ALL controls that MOST directly reduce the risk of XSS.",
+      "options": [
+        "Output encoding",
+        "Anti-CSRF tokens",
+        "WAF",
+        "Content Security Policy (CSP)",
+        "DLP"
+      ],
+      "correct": [
+        0,
+        2,
+        3
+      ]
+    },
+    "explanation": "For XSS, the most direct controls are: Output encoding, Content Security Policy (CSP), WAF."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Hard",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Medium",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Medium",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Easy",
+    "question": "A security incident is reported affecting a cloud storage bucket. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a cloud storage bucket. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Medium",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Hard",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Threats, Vulnerabilities & Mitigations",
+    "difficulty": "Easy",
+    "question": "A team is hardening a API gateway. Select ALL controls that MOST directly reduce the risk of pass-the-hash.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a API gateway. Select ALL controls that MOST directly reduce the risk of pass-the-hash.",
+      "options": [
+        "Disable Ntlm Where Possible And Use Credential Guard",
+        "WAF",
+        "SPF/DKIM/DMARC",
+        "DLP",
+        "Content Security Policy (CSP)"
+      ],
+      "correct": [
+        0
+      ]
+    },
+    "explanation": "For pass-the-hash, the most direct controls are: Disable Ntlm Where Possible And Use Credential Guard."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Medium",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Hard",
+    "question": "A security incident is reported affecting a Windows domain. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a Windows domain. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Easy",
+    "question": "A team is hardening a cloud storage bucket. Select ALL controls that MOST directly reduce the risk of phishing.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a cloud storage bucket. Select ALL controls that MOST directly reduce the risk of phishing.",
+      "options": [
+        "DLP",
+        "Output encoding",
+        "IDS",
+        "Email Filtering And User Awareness",
+        "Content Security Policy (CSP)"
+      ],
+      "correct": [
+        3
+      ]
+    },
+    "explanation": "For phishing, the most direct controls are: Email Filtering And User Awareness."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Threats, Vulnerabilities & Mitigations",
+    "difficulty": "Easy",
+    "question": "A team is hardening a VPN concentrator. Select ALL controls that MOST directly reduce the risk of XSS.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a VPN concentrator. Select ALL controls that MOST directly reduce the risk of XSS.",
+      "options": [
+        "SameSite cookies",
+        "IDS",
+        "Output encoding",
+        "WAF",
+        "Content Security Policy (CSP)"
+      ],
+      "correct": [
+        2,
+        3,
+        4
+      ]
+    },
+    "explanation": "For XSS, the most direct controls are: Output encoding, Content Security Policy (CSP), WAF."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Hard",
+    "question": "A team is hardening a VPN concentrator. Select ALL controls that MOST directly reduce the risk of credential stuffing.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a VPN concentrator. Select ALL controls that MOST directly reduce the risk of credential stuffing.",
+      "options": [
+        "DLP",
+        "MFA",
+        "IDS",
+        "Rate limiting",
+        "Security awareness training"
+      ],
+      "correct": [
+        1,
+        3
+      ]
+    },
+    "explanation": "For credential stuffing, the most direct controls are: MFA, Rate limiting."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Hard",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Easy",
+    "question": "A team is hardening a Windows domain. Select ALL controls that MOST directly reduce the risk of SQL injection.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a Windows domain. Select ALL controls that MOST directly reduce the risk of SQL injection.",
+      "options": [
+        "SPF/DKIM/DMARC",
+        "Network segmentation",
+        "Content Security Policy (CSP)",
+        "Parameterize queries",
+        "WAF"
+      ],
+      "correct": [
+        3,
+        4
+      ]
+    },
+    "explanation": "For SQL injection, the most direct controls are: Parameterize queries, WAF."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Hard",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Hard",
+    "question": "A security incident is reported affecting a Windows domain. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a Windows domain. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Hard",
+    "question": "A security incident is reported affecting a public web portal. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a public web portal. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Threats, Vulnerabilities & Mitigations",
+    "difficulty": "Medium",
+    "question": "A team is hardening a public web portal. Select ALL controls that MOST directly reduce the risk of SQL injection.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a public web portal. Select ALL controls that MOST directly reduce the risk of SQL injection.",
+      "options": [
+        "IDS",
+        "WAF",
+        "Network segmentation",
+        "Parameterize queries",
+        "Output encoding"
+      ],
+      "correct": [
+        1,
+        3
+      ]
+    },
+    "explanation": "For SQL injection, the most direct controls are: Parameterize queries, WAF."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Hard",
+    "question": "A security incident is reported affecting a Windows domain. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a Windows domain. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Easy",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Hard",
+    "question": "A security incident is reported affecting a Windows domain. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a Windows domain. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Easy",
+    "question": "A security incident is reported affecting a container cluster. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a container cluster. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Hard",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Medium",
+    "question": "A security incident is reported affecting a public web portal. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a public web portal. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Medium",
+    "question": "A security incident is reported affecting a public web portal. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a public web portal. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Medium",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Architecture",
+    "difficulty": "Easy",
+    "question": "A team is hardening a cloud storage bucket. Select ALL controls that MOST directly reduce the risk of XSS.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a cloud storage bucket. Select ALL controls that MOST directly reduce the risk of XSS.",
+      "options": [
+        "Security awareness training",
+        "WAF",
+        "Output encoding",
+        "MFA",
+        "Content Security Policy (CSP)"
+      ],
+      "correct": [
+        1,
+        2,
+        4
+      ]
+    },
+    "explanation": "For XSS, the most direct controls are: Output encoding, Content Security Policy (CSP), WAF."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Hard",
+    "question": "A security incident is reported affecting a public web portal. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a public web portal. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Easy",
+    "question": "A security incident is reported affecting a container cluster. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a container cluster. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Threats, Vulnerabilities & Mitigations",
+    "difficulty": "Hard",
+    "question": "A team is hardening a email gateway. Select ALL controls that MOST directly reduce the risk of pass-the-hash.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a email gateway. Select ALL controls that MOST directly reduce the risk of pass-the-hash.",
+      "options": [
+        "Rate limiting",
+        "MFA",
+        "Disable Ntlm Where Possible And Use Credential Guard",
+        "Anti-CSRF tokens",
+        "Network segmentation"
+      ],
+      "correct": [
+        2
+      ]
+    },
+    "explanation": "For pass-the-hash, the most direct controls are: Disable Ntlm Where Possible And Use Credential Guard."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Hard",
+    "question": "A security incident is reported affecting a VPN concentrator. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a VPN concentrator. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Architecture",
+    "difficulty": "Hard",
+    "question": "A team is hardening a email gateway. Select ALL controls that MOST directly reduce the risk of credential stuffing.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a email gateway. Select ALL controls that MOST directly reduce the risk of credential stuffing.",
+      "options": [
+        "Security awareness training",
+        "Parameterize queries",
+        "Rate limiting",
+        "MFA",
+        "IDS"
+      ],
+      "correct": [
+        2,
+        3
+      ]
+    },
+    "explanation": "For credential stuffing, the most direct controls are: MFA, Rate limiting."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Hard",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Threats, Vulnerabilities & Mitigations",
+    "difficulty": "Easy",
+    "question": "A team is hardening a public web portal. Select ALL controls that MOST directly reduce the risk of CSRF.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a public web portal. Select ALL controls that MOST directly reduce the risk of CSRF.",
+      "options": [
+        "SameSite cookies",
+        "Parameterize queries",
+        "Content Security Policy (CSP)",
+        "Anti-CSRF tokens",
+        "Security awareness training"
+      ],
+      "correct": [
+        0,
+        3
+      ]
+    },
+    "explanation": "For CSRF, the most direct controls are: Anti-CSRF tokens, SameSite cookies."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Medium",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Hard",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Easy",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Threats, Vulnerabilities & Mitigations",
+    "difficulty": "Medium",
+    "question": "A team is hardening a public web portal. Select ALL controls that MOST directly reduce the risk of CSRF.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a public web portal. Select ALL controls that MOST directly reduce the risk of CSRF.",
+      "options": [
+        "Parameterize queries",
+        "DLP",
+        "Output encoding",
+        "SameSite cookies",
+        "Anti-CSRF tokens"
+      ],
+      "correct": [
+        3,
+        4
+      ]
+    },
+    "explanation": "For CSRF, the most direct controls are: Anti-CSRF tokens, SameSite cookies."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Medium",
+    "question": "A team is hardening a cloud storage bucket. Select ALL controls that MOST directly reduce the risk of SQL injection.",
+    "pbq_json": {
+      "type": "multi_select",
+      "prompt": "A team is hardening a cloud storage bucket. Select ALL controls that MOST directly reduce the risk of SQL injection.",
+      "options": [
+        "WAF",
+        "Parameterize queries",
+        "MFA",
+        "IDS",
+        "Rate limiting"
+      ],
+      "correct": [
+        0,
+        1
+      ]
+    },
+    "explanation": "For SQL injection, the most direct controls are: Parameterize queries, WAF."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Easy",
+    "question": "A security incident is reported affecting a public web portal. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a public web portal. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "General Security Concepts",
+    "difficulty": "Easy",
+    "question": "Match each authentication method to the MOST accurate category.",
+    "pbq_json": {
+      "type": "matching",
+      "prompt": "Match each authentication method to the MOST accurate category.",
+      "left": [
+        "Password",
+        "Smart card",
+        "Fingerprint",
+        "GPS location"
+      ],
+      "right": [
+        "Something you know",
+        "Something you have",
+        "Something you are",
+        "Somewhere you are"
+      ],
+      "correct_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    },
+    "explanation": "These map to the classic authentication factor categories."
+  },
+  {
+    "qtype": "pbq",
+    "domain": "Security Operations",
+    "difficulty": "Easy",
+    "question": "A security incident is reported affecting a API gateway. Put the incident response phases in the BEST order.",
+    "pbq_json": {
+      "type": "ordering",
+      "prompt": "A security incident is reported affecting a API gateway. Put the incident response phases in the BEST order.",
+      "items": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "correct_order": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "explanation": "The standard IR lifecycle is Preparation → Identification → Containment → Eradication → Recovery → Lessons learned."
+  }
+]

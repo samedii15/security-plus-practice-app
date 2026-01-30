@@ -1,0 +1,157 @@
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { db } from './database/db.js';
+import { logAudit, EventTypes } from './auditService.js';
+
+// Register new user
+async function register(email, password, req = null) {
+  return new Promise((resolve, reject) => {
+    // Validate input
+    if (!email || !password) {
+      return reject({ status: 400, message: 'Email and password are required' });
+    }
+
+    if (password.length < 8) {
+      return reject({ status: 400, message: 'Password must be at least 8 characters' });
+    }
+
+    // Hash password
+    bcrypt.hash(password, 10, (err, hash) => {
+      if (err) {
+        return reject({ status: 500, message: 'Error hashing password' });
+      }
+
+      // Insert user into database with default role
+      db.run(
+        'INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)',
+        [email.toLowerCase(), hash, 'user'],
+        function(err) {
+          if (err) {
+            if (err.message.includes('UNIQUE')) {
+              return reject({ status: 409, message: 'Email already exists' });
+            }
+            return reject({ status: 500, message: 'Error creating user' });
+          }
+
+          const userId = this.lastID;
+          
+          // Log registration
+          logAudit(EventTypes.REGISTER, userId, { email: email.toLowerCase() }, req);
+
+          resolve({
+            id: userId,
+            email: email.toLowerCase(),
+            message: 'User registered successfully'
+          });
+        }
+      );
+    });
+  });
+}
+
+// Login user
+async function login(email, password, req = null) {
+  return new Promise((resolve, reject) => {
+    if (!email || !password) {
+      return reject({ status: 400, message: 'Email and password are required' });
+    }
+
+    // Find user by email
+    db.get(
+      'SELECT id, email, password_hash, role FROM users WHERE email = ?',
+      [email.toLowerCase()],
+      (err, user) => {
+        if (err) {
+          return reject({ status: 500, message: 'Database error' });
+        }
+
+        if (!user) {
+          // Log failed login attempt
+          logAudit(EventTypes.LOGIN_FAILURE, null, { email: email.toLowerCase(), reason: 'User not found' }, req);
+          return reject({ 
+            status: 401, 
+            message: 'Invalid credentials. Please check your email and password, or register if you don\'t have an account.' 
+          });
+        }
+
+        // Compare passwords
+        bcrypt.compare(password, user.password_hash, (err, isMatch) => {
+          if (err) {
+            return reject({ status: 500, message: 'Error verifying password' });
+          }
+
+          if (!isMatch) {
+            // Log failed login attempt
+            logAudit(EventTypes.LOGIN_FAILURE, user.id, { email: email.toLowerCase(), reason: 'Invalid password' }, req);
+            return reject({ status: 401, message: 'Invalid credentials' });
+          }
+
+          // Log successful login
+          logAudit(EventTypes.LOGIN_SUCCESS, user.id, { email: user.email }, req);
+
+          // Generate JWT token with role
+          const token = jwt.sign(
+            { id: user.id, email: user.email, role: user.role },
+            process.env.JWT_SECRET || 'default-secret-change-in-production',
+            { expiresIn: '24h' }
+          );
+
+          resolve({
+            token,
+            user: {
+              id: user.id,
+              email: user.email,
+              role: user.role
+            }
+          });
+        });
+      }
+    );
+  });
+}
+
+// Verify JWT token middleware
+function verifyToken(req, res, next) {
+  const token = req.headers.authorization?.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  try {
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || 'default-secret-change-in-production'
+    );
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+}
+
+// Verify admin role middleware
+function verifyAdmin(req, res, next) {
+  if (!req.user || req.user.role !== 'admin') {
+    logAudit(EventTypes.ADMIN_ACCESS, req.user?.id, { 
+      denied: true, 
+      path: req.path,
+      reason: 'Insufficient permissions' 
+    }, req);
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  
+  logAudit(EventTypes.ADMIN_ACCESS, req.user.id, { 
+    allowed: true, 
+    path: req.path 
+  }, req);
+  
+  next();
+}
+
+export {
+  register,
+  login,
+  verifyToken,
+  verifyAdmin
+};
