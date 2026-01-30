@@ -1,37 +1,71 @@
 # CompTIA Security+ Practice Exam Web Application
 
-A full-stack web application for CompTIA Security+ exam practice with user authentication, timed exams, randomized questions, and comprehensive result tracking.
+A production-ready, full-stack web application for CompTIA Security+ exam practice with comprehensive security features, user management, analytics, and performance-based questions (PBQs).
 
 ## 🎯 Features
 
-### Core Functionality
-- **User Authentication**: Secure registration and login with JWT tokens and bcrypt password hashing
-- **90-Question Timed Exams**: Each exam consists of exactly 90 questions with a 90-minute timer
-- **Question Bank**: 120 comprehensive Security+ questions covering all major domains
-- **Smart Randomization**: Questions are randomly selected while avoiding recent repeats
-- **Progress Tracking**: Track which questions have been used and which were answered incorrectly
-- **Retake Missed Questions**: Create new exams prioritizing previously missed questions
+### 🔐 Security & Authentication
+- **JWT Authentication**: Secure token-based authentication with bcrypt password hashing
+- **Role-Based Access Control**: User and admin roles with protected endpoints
+- **Rate Limiting**: Auth endpoints (10 req/15min) and API endpoints (100 req/15min)
+- **Ownership Verification**: Users can only access their own data
+- **Soft Deletes**: Data recovery with automatic cleanup after 30 days
+- **GDPR Compliance**: Full data export capability
+- **Security Headers**: Helmet.js with Content Security Policy
+- **Audit Logging**: Track all authentication and admin actions
 
-### Exam Features
-- **Question Navigation**: Jump between any question using the visual navigator grid
-- **Mark for Review**: Flag questions to revisit before submitting
-- **Clear Answers**: Remove selected answers before final submission
-- **Auto-Submit**: Exam automatically submits when time expires
-- **Visual Feedback**: Color-coded grid showing answered, marked, and current questions
+### 📝 Exam Features
+- **90-Question Timed Exams**: Realistic exam simulation with 90-minute timer
+- **1,140+ Questions**: Comprehensive question bank covering all Security+ domains
+- **Multiple Question Types**:
+  - Multiple Choice Questions (MCQs)
+  - Performance-Based Questions (PBQs): Multi-select, Ordering, Matching
+- **Smart Randomization**: Domain-weighted question selection matching real exam distribution
+- **Adaptive Difficulty**: Question difficulty adjusts based on performance
+- **Question Navigation**: Jump between questions with visual grid
+- **Mark for Review**: Flag questions to revisit
+- **Auto-Submit**: Exam submits automatically when time expires
+- **Retake Missed Questions**: Focus on previously incorrect answers
 
-### Results & Analytics
-- **Score Calculation**: Based only on answered questions with pass/fail indication (75% passing)
-- **Domain Breakdown**: Performance analysis by Security+ domain
-- **Answer Review**: Detailed review showing your answers, correct answers, and explanations
-- **Exam History**: View all previous attempts with date, score, and time used
-- **Historical Review**: Access complete question-by-question review of any past exam
+### 📊 Analytics & Tracking
+- **Comprehensive Performance Analytics**:
+  - Overall accuracy with strength indicators
+  - Performance by domain (21 domains)
+  - Performance by topic (12+ topics)
+  - Performance by difficulty level
+- **Weak Area Identification**: Top 5 areas needing improvement
+- **Personalized Recommendations**: AI-driven study suggestions
+- **Progress Over Time**: Track improvement across exams
+- **Exam History**: Complete history with detailed reviews
+- **Question Usage Tracking**: Avoid repetition, track missed questions
+- **Bookmarking**: Save questions for later review
 
-### Security Features
-- **No Answer Leakage**: Correct answers are never sent to frontend during active exams
-- **JWT Authentication**: Secure API endpoints with token-based auth
-- **Password Requirements**: Minimum 8 characters enforced
-- **SQL Injection Protection**: Parameterized queries throughout
-- **CSP Headers**: Content Security Policy via Helmet.js
+### 🎓 Study Mode
+- **Custom Study Sessions**: Filter by domain, difficulty, or question type
+- **Immediate Feedback Mode**: See correct answers after each question
+- **Targeted Practice**: Focus on weak areas or specific domains
+- **Flexible Question Count**: 1-100 questions per session
+
+### 👥 User Management
+- **User Dashboard**: View attempts, scores, and progress
+- **Attempt Management**: View detailed breakdowns, delete attempts
+- **Data Export**: Download complete history (GDPR compliant)
+- **Account Deletion**: Soft delete with data cleanup
+
+### 🛡️ Admin Features
+- **User Management**: View, manage, and delete user accounts
+- **Attempt Oversight**: View and manage all exam attempts
+- **Audit Logs**: Track system events and admin actions
+- **Data Cleanup**: Manual trigger for data retention cleanup
+- **System Health**: Monitor database connectivity and metrics
+
+### 🏥 Production Ready
+- **Health Checks**: DB connectivity and system metrics
+- **Request Logging**: Request ID, duration, and status tracking
+- **Data Retention**: Auto-cleanup of old logs (90d login, 180d audit)
+- **Integration Tests**: Complete lifecycle testing
+- **Error Handling**: Comprehensive error handling throughout
+- **Environment Configuration**: .env support with validation
 
 ## 📋 Prerequisites
 
@@ -219,6 +253,58 @@ comptia/
 - `POST /api/exams/retake-missed` - Start retake-missed exam
   ```json
   Response: { "examId": 2, "questions": [...] }
+  ```
+
+### Analytics (Require Authentication)
+- `GET /api/analytics` - Get comprehensive analytics
+- `GET /api/analytics/progress` - Get progress over time
+- `GET /api/analytics/domain/:domain` - Get domain-specific performance
+
+### Study Mode (Require Authentication)
+- `POST /api/study/start` - Start custom study session
+  ```json
+  Body: { 
+    "domains": ["Security Operations"], 
+    "difficulty": "Hard",
+    "questionCount": 20,
+    "immediateMode": true
+  }
+  ```
+- `POST /api/study/:sessionId/answer` - Submit study answer
+- `GET /api/study/domains` - Get available domains
+- `GET /api/study/history` - Get study session history
+
+### User Self-Service (Require Authentication)
+- `GET /api/me/attempts` - Get user's own attempts
+- `GET /api/me/attempts/:id` - Get specific attempt details
+- `DELETE /api/me/attempts/:id` - Delete user's attempt
+- `DELETE /api/me/account` - Delete user's account (soft delete)
+- `GET /api/me/export` - Export all user data (GDPR)
+
+### Bookmarks (Require Authentication)
+- `GET /api/bookmarks` - Get user's bookmarked questions
+- `POST /api/bookmarks/:questionId` - Bookmark a question
+- `DELETE /api/bookmarks/:questionId` - Remove bookmark
+
+### Admin (Require Admin Role)
+- `GET /api/admin/users` - List all users
+- `GET /api/admin/users/:id` - Get user details
+- `DELETE /api/admin/users/:id` - Soft delete user
+- `DELETE /api/admin/attempts/:id` - Soft delete attempt
+- `GET /api/admin/audit-logs` - View audit logs
+- `POST /api/admin/cleanup` - Manually trigger data cleanup
+
+### System
+- `GET /api/health` - System health check with DB connectivity
+  ```json
+  Response: {
+    "status": "ok",
+    "database": "connected",
+    "questionCount": 1140,
+    "userCount": 42,
+    "attemptCount": 156,
+    "uptime": 3600
+  }
   ```
 
 ## 🗄️ Database Schema
