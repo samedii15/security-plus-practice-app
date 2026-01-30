@@ -12,6 +12,7 @@ import { register, login, verifyToken, verifyAdmin } from "./auth.js";
 import { startExam, submitExam, getExamHistory, getExamReview, getDomainStats } from "./examService.js";
 import { getUserAnalytics, getDomainPerformance, getProgressOverTime } from "./analyticsService.js";
 import { startStudySession, submitStudyAnswer, getAvailableDomains, getStudyHistory } from "./studyService.js";
+import { scheduleCleanup, runAllCleanupTasks } from "./dataCleanup.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,6 +26,28 @@ process.on("uncaughtException", (err) => {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Helper: Ensure consistent JSON storage
+function toJsonString(value) {
+  if (value === null || value === undefined) return null;
+  return typeof value === 'string' ? JSON.stringify(value) : JSON.stringify(value);
+}
+
+// Request logging middleware (before other middleware)
+app.use((req, res, next) => {
+  const requestId = Math.random().toString(36).substring(7);
+  const startTime = Date.now();
+  
+  req.requestId = requestId;
+  
+  // Log response
+  res.on('finish', () => {
+    const duration = Date.now() - startTime;
+    console.log(`[${requestId}] ${req.method} ${req.path} ${res.statusCode} ${duration}ms`);
+  });
+  
+  next();
+});
 
 // Rate limiting for auth endpoints (skip for admins)
 const authLimiter = rateLimit({
@@ -79,6 +102,9 @@ app.use('/api/', apiLimiter);
 // Initialize database
 initDatabase();
 
+// Schedule daily data cleanup
+scheduleCleanup();
+
 // Import questions from JSON file
 function importQuestions() {
   const questionsPath = path.join(__dirname, 'questions.json');
@@ -130,14 +156,30 @@ function importQuestions() {
 // Import questions on startup
 setTimeout(importQuestions, 1000);
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  db.get('SELECT COUNT(*) as count FROM questions', (err, row) => {
-    if (err) {
-      return res.status(500).json({ ok: false, error: 'Database error' });
-    }
-    res.json({ ok: true, questions: row.count });
-  });
+// Health check endpoint with DB connectivity
+app.get('/api/health', async (req, res) => {
+  try {
+    const questionCount = await get('SELECT COUNT(*) as count FROM questions');
+    const userCount = await get('SELECT COUNT(*) as count FROM users WHERE deleted_at IS NULL');
+    const attemptCount = await get('SELECT COUNT(*) as count FROM exam_attempts WHERE deleted_at IS NULL');
+    
+    res.json({ 
+      status: 'ok',
+      database: 'connected',
+      questionCount: questionCount.count,
+      userCount: userCount.count,
+      attemptCount: attemptCount.count,
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  } catch (err) {
+    res.status(500).json({ 
+      status: 'error',
+      database: 'disconnected',
+      error: err.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Authentication endpoints
@@ -185,6 +227,7 @@ app.post('/api/exams/:id/submit', verifyToken, async (req, res) => {
 
 app.get('/api/exams/history', verifyToken, async (req, res) => {
   try {
+    // Only return non-deleted attempts for this user
     const history = await getExamHistory(req.user.id);
     res.json(history);
   } catch (err) {
@@ -195,6 +238,17 @@ app.get('/api/exams/history', verifyToken, async (req, res) => {
 app.get('/api/exams/:id', verifyToken, async (req, res) => {
   try {
     const examId = parseInt(req.params.id);
+    // Verify ownership and not deleted
+    const exam = await get('SELECT user_id, deleted_at FROM exams WHERE id = ?', [examId]);
+    if (!exam) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
+    if (exam.deleted_at) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
+    if (exam.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
     const review = await getExamReview(examId, req.user.id);
     res.json(review);
   } catch (err) {
@@ -546,6 +600,101 @@ app.delete('/api/bookmarks/:questionId', verifyToken, async (req, res) => {
 
 // ===== USER SELF-SERVICE ENDPOINTS =====
 
+// Export user data (GDPR-style)
+app.get('/api/me/export', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Get user profile (without password)
+    const user = await get(
+      'SELECT id, email, role, created_at FROM users WHERE id = ? AND deleted_at IS NULL',
+      [userId]
+    );
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Get all non-deleted attempts
+    const attempts = await all(
+      `SELECT id, mode, started_at, submitted_at, duration, total_questions,
+              score_percent, correct_count, partial_count, incorrect_count
+       FROM exam_attempts
+       WHERE user_id = ? AND deleted_at IS NULL
+       ORDER BY started_at DESC`,
+      [userId]
+    );
+    
+    // Get answers for all attempts
+    const attemptIds = attempts.map(a => a.id);
+    let answers = [];
+    if (attemptIds.length > 0) {
+      const placeholders = attemptIds.map(() => '?').join(',');
+      answers = await all(
+        `SELECT eaa.attempt_id, eaa.question_number, eaa.user_answer_json,
+                eaa.is_correct, eaa.points, q.question, q.domain
+         FROM exam_attempt_answers eaa
+         JOIN questions q ON eaa.question_id = q.id
+         WHERE eaa.attempt_id IN (${placeholders})
+         ORDER BY eaa.attempt_id, eaa.question_number`,
+        attemptIds
+      );
+    }
+    
+    // Get login history (last 50)
+    const logins = await all(
+      `SELECT event, ip_address, created_at
+       FROM auth_logins
+       WHERE user_id = ?
+       ORDER BY created_at DESC
+       LIMIT 50`,
+      [userId]
+    );
+    
+    // Get bookmarks
+    const bookmarks = await all(
+      `SELECT bq.question_id, bq.notes, bq.created_at, q.question, q.domain
+       FROM bookmarked_questions bq
+       JOIN questions q ON bq.question_id = q.id
+       WHERE bq.user_id = ?
+       ORDER BY bq.created_at DESC`,
+      [userId]
+    );
+    
+    const exportData = {
+      exportDate: new Date().toISOString(),
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        memberSince: user.created_at
+      },
+      attempts: attempts.map(attempt => ({
+        ...attempt,
+        answers: answers.filter(a => a.attempt_id === attempt.id)
+      })),
+      loginHistory: logins,
+      bookmarks: bookmarks,
+      statistics: {
+        totalAttempts: attempts.length,
+        totalQuestionsAnswered: answers.length,
+        averageScore: attempts.length > 0 
+          ? (attempts.reduce((sum, a) => sum + (a.score_percent || 0), 0) / attempts.length).toFixed(2)
+          : 0
+      }
+    };
+    
+    // Set headers for download
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="comptia-data-export-${user.id}-${Date.now()}.json"`);
+    res.json(exportData);
+    
+  } catch (err) {
+    console.error('Export error:', err);
+    res.status(500).json({ error: 'Failed to export data' });
+  }
+});
+
 // Get user's own attempts
 app.get('/api/me/attempts', verifyToken, async (req, res) => {
   try {
@@ -680,6 +829,19 @@ app.get('/api/admin/audit-logs', verifyToken, verifyAdmin, async (req, res) => {
     res.json(logs);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Manually trigger data cleanup
+app.post('/api/admin/cleanup', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const results = await runAllCleanupTasks();
+    res.json({
+      message: 'Data cleanup completed successfully',
+      results
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Cleanup failed: ' + err.message });
   }
 });
 

@@ -555,7 +555,7 @@ async function getExamHistory(userId) {
       `SELECT id, started_at, submitted_at, time_used, score, 
               total_questions, answered_count, is_retake_missed
        FROM exams
-       WHERE user_id = ? AND submitted_at IS NOT NULL
+       WHERE user_id = ? AND submitted_at IS NOT NULL AND deleted_at IS NULL
        ORDER BY submitted_at DESC`,
       [userId],
       (err, exams) => {
@@ -582,9 +582,9 @@ async function getExamHistory(userId) {
 // Get specific exam review
 async function getExamReview(examId, userId) {
   return new Promise((resolve, reject) => {
-    // Verify exam belongs to user and is submitted
+    // Verify exam belongs to user and is submitted and not deleted
     db.get(
-      'SELECT * FROM exams WHERE id = ? AND user_id = ?',
+      'SELECT * FROM exams WHERE id = ? AND user_id = ? AND deleted_at IS NULL',
       [examId, userId],
       (err, exam) => {
         if (err) return reject({ status: 500, message: 'Database error' });

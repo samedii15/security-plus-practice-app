@@ -80,7 +80,7 @@ async function getUserAnalytics(userId) {
                         SUM(CASE WHEN eq.is_correct = 1 THEN 1 ELSE 0 END) as correct_count
                        FROM exams e
                        LEFT JOIN exam_questions eq ON e.id = eq.exam_id AND eq.user_answer IS NOT NULL
-                       WHERE e.user_id = ? AND e.submitted_at IS NOT NULL
+                       WHERE e.user_id = ? AND e.submitted_at IS NOT NULL AND e.deleted_at IS NULL
                        GROUP BY e.id
                        ORDER BY e.submitted_at DESC
                        LIMIT 10`,
@@ -417,7 +417,7 @@ async function getProgressOverTime(userId) {
         COUNT(eq.id) as total_questions
        FROM exams e
        LEFT JOIN exam_questions eq ON e.id = eq.exam_id AND eq.user_answer IS NOT NULL
-       WHERE e.user_id = ? AND e.submitted_at IS NOT NULL
+       WHERE e.user_id = ? AND e.submitted_at IS NOT NULL AND e.deleted_at IS NULL
        GROUP BY DATE(e.submitted_at)
        ORDER BY exam_date ASC`,
       [userId],
