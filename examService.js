@@ -1,4 +1,5 @@
-import { db } from './database/db.js';
+import { db, run, get } from './database/db.js';
+import { scorePBQ } from './pbqScoring.js';
 
 // Domain weights based on CompTIA Security+ exam objectives
 // These percentages reflect the actual exam distribution
@@ -231,8 +232,16 @@ async function startExam(userId, isRetakeMissed = false) {
       throw { status: 400, message: 'Not enough questions available in the question bank' };
     }
 
+    // Create exam_attempts record
+    const attemptResult = await run(
+      'INSERT INTO exam_attempts (user_id, mode, total_questions) VALUES (?, ?, ?)',
+      [userId, 'exam', 90]
+    );
+    
+    const attemptId = attemptResult.lastID;
+
     return new Promise((resolve, reject) => {
-      // Create exam record
+      // Create exam record (keep for backward compatibility)
       db.run(
         'INSERT INTO exams (user_id, is_retake_missed) VALUES (?, ?)',
         [userId, isRetakeMissed ? 1 : 0],
@@ -301,6 +310,7 @@ async function startExam(userId, isRetakeMissed = false) {
             
             resolve({
               examId,
+              attemptId,
               questions: questionsForClient,
               duration: 90, // minutes
               totalQuestions: 90
@@ -315,13 +325,13 @@ async function startExam(userId, isRetakeMissed = false) {
 }
 
 // Submit exam answers
-async function submitExam(examId, userId, answers, timeUsed) {
-  return new Promise((resolve, reject) => {
+async function submitExam(examId, userId, answers, timeUsed, attemptId = null) {
+  return new Promise(async (resolve, reject) => {
     // Verify exam belongs to user
     db.get(
       'SELECT * FROM exams WHERE id = ? AND user_id = ?',
       [examId, userId],
-      (err, exam) => {
+      async (err, exam) => {
         if (err) return reject({ status: 500, message: 'Database error' });
         if (!exam) return reject({ status: 404, message: 'Exam not found' });
         if (exam.submitted_at) return reject({ status: 400, message: 'Exam already submitted' });
@@ -342,7 +352,8 @@ async function submitExam(examId, userId, answers, timeUsed) {
         // Get exam questions with correct answers
         db.all(
           `SELECT eq.question_number, eq.question_id, q.answer, q.explanation, 
-                  q.question, q.choice_a, q.choice_b, q.choice_c, q.choice_d, q.domain
+                  q.question, q.choice_a, q.choice_b, q.choice_c, q.choice_d, q.domain,
+                  q.qtype, q.pbq_json
            FROM exam_questions eq
            JOIN questions q ON eq.question_id = q.id
            WHERE eq.exam_id = ?
@@ -353,6 +364,8 @@ async function submitExam(examId, userId, answers, timeUsed) {
             
             let correctCount = 0;
             let answeredCount = 0;
+            let partialCount = 0;
+            let incorrectCount = 0;
             const results = [];
             
             // Calculate score and build results
@@ -362,14 +375,62 @@ async function submitExam(examId, userId, answers, timeUsed) {
               
               if (isAnswered) {
                 answeredCount++;
-                const isCorrect = userAnswer === q.answer;
-                if (isCorrect) correctCount++;
                 
-                // Update exam_questions table
+                const qtype = q.qtype || 'mcq';
+                let isCorrect = false;
+                let isPartial = false;
+                let points = 0;
+                let userAnswerStr = userAnswer;
+                
+                // Score based on question type
+                if (qtype === 'pbq') {
+                  // Parse PBQ data
+                  let pbqData = null;
+                  try {
+                    pbqData = JSON.parse(q.pbq_json);
+                  } catch (e) {
+                    console.error('Failed to parse PBQ JSON:', e);
+                  }
+                  
+                  // Score PBQ
+                  if (pbqData && typeof userAnswer === 'object') {
+                    const pbqResult = scorePBQ(userAnswer, pbqData);
+                    isCorrect = pbqResult === true || (typeof pbqResult === 'object' && pbqResult.isCorrect);
+                    
+                    // Check for partial credit
+                    if (typeof pbqResult === 'object') {
+                      points = pbqResult.points || (isCorrect ? 1 : 0);
+                      isPartial = pbqResult.isPartial || false;
+                    } else {
+                      points = isCorrect ? 1 : 0;
+                    }
+                  }
+                  
+                  // Store as JSON string
+                  userAnswerStr = JSON.stringify(userAnswer);
+                } else {
+                  // MCQ: simple string comparison
+                  isCorrect = userAnswer === q.answer;
+                  points = isCorrect ? 1 : 0;
+                }
+                
+                if (isCorrect) correctCount++;
+                else if (isPartial) partialCount++;
+                else incorrectCount++;
+                
+                // Update exam_questions table (for backward compatibility)
                 db.run(
                   'UPDATE exam_questions SET user_answer = ?, is_correct = ? WHERE exam_id = ? AND question_number = ?',
-                  [userAnswer, isCorrect ? 1 : 0, examId, q.question_number]
+                  [userAnswerStr, isCorrect ? 1 : 0, examId, q.question_number]
                 );
+                
+                // Insert into exam_attempt_answers if attemptId exists
+                if (attemptId) {
+                  run(
+                    'INSERT INTO exam_attempt_answers (attempt_id, question_id, question_number, user_answer_json, is_correct, is_partial, points) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    [attemptId, q.question_id, q.question_number, userAnswerStr, isCorrect ? 1 : 0, isPartial ? 1 : 0, points]
+                  ).catch(err => console.error('Error saving exam_attempt_answers:', err));
+                }
                 
                 // Update question_usage tracking
                 db.run(
@@ -382,21 +443,36 @@ async function submitExam(examId, userId, answers, timeUsed) {
                   [userId, q.question_id, isCorrect ? 1 : 0, isCorrect ? 1 : 0]
                 );
                 
-                results.push({
-                  questionNumber: q.question_number,
-                  question: q.question,
-                  choices: {
-                    A: q.choice_a,
-                    B: q.choice_b,
-                    C: q.choice_c,
-                    D: q.choice_d
-                  },
-                  userAnswer,
-                  correctAnswer: q.answer,
-                  isCorrect,
-                  explanation: q.explanation,
-                  domain: q.domain
-                });
+                // Build result object
+                if (qtype === 'pbq') {
+                  results.push({
+                    questionNumber: q.question_number,
+                    question: q.question,
+                    qtype: 'pbq',
+                    userAnswer: userAnswer, // Keep as object
+                    correctAnswer: q.pbq_json, // Keep raw JSON
+                    isCorrect,
+                    explanation: q.explanation,
+                    domain: q.domain
+                  });
+                } else {
+                  results.push({
+                    questionNumber: q.question_number,
+                    question: q.question,
+                    qtype: 'mcq',
+                    choices: {
+                      A: q.choice_a,
+                      B: q.choice_b,
+                      C: q.choice_c,
+                      D: q.choice_d
+                    },
+                    userAnswer,
+                    correctAnswer: q.answer,
+                    isCorrect,
+                    explanation: q.explanation,
+                    domain: q.domain
+                  });
+                }
               }
             });
             
@@ -404,7 +480,7 @@ async function submitExam(examId, userId, answers, timeUsed) {
               ? Math.round((correctCount / answeredCount) * 100)
               : 0;
             
-            // Update exam record
+            // Update exam record (for backward compatibility)
             db.run(
               `UPDATE exams 
                SET submitted_at = CURRENT_TIMESTAMP, 
@@ -413,8 +489,27 @@ async function submitExam(examId, userId, answers, timeUsed) {
                    answered_count = ?
                WHERE id = ?`,
               [timeUsed, scorePercentage, answeredCount, examId],
-              (err) => {
+              async (err) => {
                 if (err) return reject({ status: 500, message: 'Error updating exam' });
+                
+                // Update exam_attempts if attemptId exists
+                if (attemptId) {
+                  try {
+                    await run(
+                      `UPDATE exam_attempts 
+                       SET submitted_at = CURRENT_TIMESTAMP,
+                           duration = ?,
+                           score_percent = ?,
+                           correct_count = ?,
+                           partial_count = ?,
+                           incorrect_count = ?
+                       WHERE id = ?`,
+                      [timeUsed, scorePercentage, correctCount, partialCount, incorrectCount, attemptId]
+                    );
+                  } catch (err) {
+                    console.error('Error updating exam_attempts:', err);
+                  }
+                }
                 
                 // Calculate domain breakdown
                 const domainStats = {};
@@ -500,7 +595,7 @@ async function getExamReview(examId, userId) {
         db.all(
           `SELECT eq.question_number, eq.user_answer, eq.is_correct,
                   q.question, q.choice_a, q.choice_b, q.choice_c, q.choice_d,
-                  q.answer, q.explanation, q.domain
+                  q.answer, q.explanation, q.domain, q.qtype, q.pbq_json
            FROM exam_questions eq
            JOIN questions q ON eq.question_id = q.id
            WHERE eq.exam_id = ?
@@ -511,21 +606,46 @@ async function getExamReview(examId, userId) {
             
             const results = questions
               .filter(q => q.user_answer) // Only include answered questions
-              .map(q => ({
-                questionNumber: q.question_number,
-                question: q.question,
-                choices: {
-                  A: q.choice_a,
-                  B: q.choice_b,
-                  C: q.choice_c,
-                  D: q.choice_d
-                },
-                userAnswer: q.user_answer,
-                correctAnswer: q.answer,
-                isCorrect: q.is_correct === 1,
-                explanation: q.explanation,
-                domain: q.domain
-              }));
+              .map(q => {
+                const qtype = q.qtype || 'mcq';
+                
+                if (qtype === 'pbq') {
+                  let userAnswer = null;
+                  try {
+                    userAnswer = JSON.parse(q.user_answer);
+                  } catch (e) {
+                    userAnswer = q.user_answer;
+                  }
+                  
+                  return {
+                    questionNumber: q.question_number,
+                    question: q.question,
+                    qtype: 'pbq',
+                    userAnswer: userAnswer,
+                    correctAnswer: q.pbq_json,
+                    isCorrect: q.is_correct === 1,
+                    explanation: q.explanation,
+                    domain: q.domain
+                  };
+                } else {
+                  return {
+                    questionNumber: q.question_number,
+                    question: q.question,
+                    qtype: 'mcq',
+                    choices: {
+                      A: q.choice_a,
+                      B: q.choice_b,
+                      C: q.choice_c,
+                      D: q.choice_d
+                    },
+                    userAnswer: q.user_answer,
+                    correctAnswer: q.answer,
+                    isCorrect: q.is_correct === 1,
+                    explanation: q.explanation,
+                    domain: q.domain
+                  };
+                }
+              });
             
             resolve({
               examId: exam.id,

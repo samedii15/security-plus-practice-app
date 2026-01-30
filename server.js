@@ -3,6 +3,7 @@ dotenv.config();
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
@@ -10,6 +11,7 @@ import { db, initDatabase, all, get, run } from "./database/db.js";
 import { register, login, verifyToken, verifyAdmin } from "./auth.js";
 import { startExam, submitExam, getExamHistory, getExamReview, getDomainStats } from "./examService.js";
 import { getUserAnalytics, getDomainPerformance, getProgressOverTime } from "./analyticsService.js";
+import { startStudySession, submitStudyAnswer, getAvailableDomains, getStudyHistory } from "./studyService.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,13 +26,45 @@ process.on("uncaughtException", (err) => {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Rate limiting for auth endpoints (skip for admins)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 requests per window
+  message: { error: 'Too many requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: async (req) => {
+    // Check if user is trying to login and is admin
+    if (req.body && req.body.email) {
+      const email = req.body.email.toLowerCase();
+      try {
+        const user = await get('SELECT role FROM users WHERE email = ? AND deleted_at IS NULL', [email]);
+        return user && user.role === 'admin';
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  }
+});
+
+// Rate limiting for general API endpoints
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 requests per window
+  message: { error: 'Too many requests, please slow down.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Middleware
 app.use(cors());
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrcAttr: ["'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:"]
     }
@@ -38,6 +72,9 @@ app.use(helmet({
 }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Apply general rate limiting to API routes
+app.use('/api/', apiLimiter);
 
 // Initialize database
 initDatabase();
@@ -104,7 +141,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Authentication endpoints
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     const result = await register(email, password, req);
@@ -114,7 +151,7 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     const result = await login(email, password, req);
@@ -138,8 +175,8 @@ app.post('/api/exams/start', verifyToken, async (req, res) => {
 app.post('/api/exams/:id/submit', verifyToken, async (req, res) => {
   try {
     const examId = parseInt(req.params.id);
-    const { answers, timeUsed } = req.body;
-    const result = await submitExam(examId, req.user.id, answers, timeUsed);
+    const { answers, timeUsed, attemptId } = req.body;
+    const result = await submitExam(examId, req.user.id, answers, timeUsed, attemptId);
     res.json(result);
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
@@ -212,6 +249,54 @@ app.get('/api/analytics/progress', verifyToken, async (req, res) => {
   try {
     const progress = await getProgressOverTime(req.user.id);
     res.json(progress);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+// ===== STUDY MODE ENDPOINTS =====
+
+// Start a study session with custom filters
+app.post('/api/study/start', verifyToken, async (req, res) => {
+  try {
+    const result = await startStudySession(req.user.id, req.body);
+    res.json(result);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+// Submit an answer in a study session
+app.post('/api/study/:sessionId/answer', verifyToken, async (req, res) => {
+  try {
+    const { questionNumber, answer } = req.body;
+    const result = await submitStudyAnswer(
+      parseInt(req.params.sessionId),
+      req.user.id,
+      questionNumber,
+      answer
+    );
+    res.json(result);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+// Get available domains for filtering
+app.get('/api/study/domains', verifyToken, async (req, res) => {
+  try {
+    const domains = await getAvailableDomains();
+    res.json(domains);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+// Get study history for user
+app.get('/api/study/history', verifyToken, async (req, res) => {
+  try {
+    const history = await getStudyHistory(req.user.id);
+    res.json(history);
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
   }
@@ -459,6 +544,131 @@ app.delete('/api/bookmarks/:questionId', verifyToken, async (req, res) => {
   }
 });
 
+// ===== USER SELF-SERVICE ENDPOINTS =====
+
+// Get user's own attempts
+app.get('/api/me/attempts', verifyToken, async (req, res) => {
+  try {
+    const attempts = await all(
+      `SELECT id, mode, started_at, submitted_at, duration, total_questions, 
+              score_percent, correct_count, partial_count, incorrect_count
+       FROM exam_attempts
+       WHERE user_id = ? AND deleted_at IS NULL
+       ORDER BY started_at DESC`,
+      [req.user.id]
+    );
+    res.json(attempts);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get specific attempt details with answers
+app.get('/api/me/attempts/:id', verifyToken, async (req, res) => {
+  try {
+    const attemptId = parseInt(req.params.id);
+    
+    // Verify ownership
+    const attempt = await get(
+      'SELECT * FROM exam_attempts WHERE id = ? AND user_id = ? AND deleted_at IS NULL',
+      [attemptId, req.user.id]
+    );
+    
+    if (!attempt) {
+      return res.status(404).json({ error: 'Attempt not found' });
+    }
+    
+    // Get answers
+    const answers = await all(
+      `SELECT eaa.*, q.question, q.domain, q.qtype, q.answer, q.explanation,
+              q.choice_a, q.choice_b, q.choice_c, q.choice_d
+       FROM exam_attempt_answers eaa
+       JOIN questions q ON eaa.question_id = q.id
+       WHERE eaa.attempt_id = ?
+       ORDER BY eaa.question_number`,
+      [attemptId]
+    );
+    
+    res.json({
+      attempt,
+      answers
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Soft delete user's own attempt
+app.delete('/api/me/attempts/:id', verifyToken, async (req, res) => {
+  try {
+    const attemptId = parseInt(req.params.id);
+    
+    // Verify ownership
+    const attempt = await get(
+      'SELECT id FROM exam_attempts WHERE id = ? AND user_id = ? AND deleted_at IS NULL',
+      [attemptId, req.user.id]
+    );
+    
+    if (!attempt) {
+      return res.status(404).json({ error: 'Attempt not found' });
+    }
+    
+    // Soft delete
+    await run(
+      'UPDATE exam_attempts SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [attemptId]
+    );
+    
+    res.json({ message: 'Attempt deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Soft delete user's own account
+app.delete('/api/me/account', verifyToken, async (req, res) => {
+  try {
+    const { password } = req.body;
+    
+    if (!password) {
+      return res.status(400).json({ error: 'Password required to delete account' });
+    }
+    
+    // Verify password
+    const user = await get(
+      'SELECT password_hash FROM users WHERE id = ? AND deleted_at IS NULL',
+      [req.user.id]
+    );
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const bcrypt = (await import('bcryptjs')).default;
+    const isMatch = await bcrypt.compare(password, user.password_hash);
+    
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid password' });
+    }
+    
+    // Soft delete user
+    await run(
+      'UPDATE users SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [req.user.id]
+    );
+    
+    // Also soft delete all user's attempts
+    await run(
+      'UPDATE exam_attempts SET deleted_at = CURRENT_TIMESTAMP WHERE user_id = ?',
+      [req.user.id]
+    );
+    
+    res.json({ message: 'Account deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Admin: Get audit logs (protected with verifyAdmin)
 app.get('/api/admin/audit-logs', verifyToken, verifyAdmin, async (req, res) => {
   try {
@@ -468,6 +678,131 @@ app.get('/api/admin/audit-logs', verifyToken, verifyAdmin, async (req, res) => {
       offset: parseInt(req.query.offset) || 0
     });
     res.json(logs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ===== ADMIN USER MANAGEMENT ENDPOINTS =====
+
+// Get all users (admin only)
+app.get('/api/admin/users', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const users = await all(
+      `SELECT id, email, role, created_at, deleted_at
+       FROM users
+       ORDER BY created_at DESC`
+    );
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get specific user details (admin only)
+app.get('/api/admin/users/:id', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    
+    const user = await get(
+      `SELECT id, email, role, created_at, deleted_at
+       FROM users
+       WHERE id = ?`,
+      [userId]
+    );
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Get user's attempts
+    const attempts = await all(
+      `SELECT id, mode, started_at, submitted_at, duration, total_questions,
+              score_percent, correct_count, partial_count, incorrect_count, deleted_at
+       FROM exam_attempts
+       WHERE user_id = ?
+       ORDER BY started_at DESC`,
+      [userId]
+    );
+    
+    // Get user's login history
+    const logins = await all(
+      `SELECT id, event, ip_address, user_agent, created_at
+       FROM auth_logins
+       WHERE user_id = ?
+       ORDER BY created_at DESC
+       LIMIT 20`,
+      [userId]
+    );
+    
+    res.json({
+      user,
+      attempts,
+      logins
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Soft delete user (admin only)
+app.delete('/api/admin/users/:id', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    
+    // Prevent admin from deleting themselves
+    if (userId === req.user.id) {
+      return res.status(400).json({ error: 'Cannot delete your own account' });
+    }
+    
+    const user = await get(
+      'SELECT id FROM users WHERE id = ? AND deleted_at IS NULL',
+      [userId]
+    );
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Soft delete user
+    await run(
+      'UPDATE users SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [userId]
+    );
+    
+    // Soft delete all user's attempts
+    await run(
+      'UPDATE exam_attempts SET deleted_at = CURRENT_TIMESTAMP WHERE user_id = ?',
+      [userId]
+    );
+    
+    res.json({ message: 'User deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Soft delete attempt (admin only)
+app.delete('/api/admin/attempts/:id', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const attemptId = parseInt(req.params.id);
+    
+    const attempt = await get(
+      'SELECT id FROM exam_attempts WHERE id = ? AND deleted_at IS NULL',
+      [attemptId]
+    );
+    
+    if (!attempt) {
+      return res.status(404).json({ error: 'Attempt not found' });
+    }
+    
+    // Soft delete
+    await run(
+      'UPDATE exam_attempts SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [attemptId]
+    );
+    
+    res.json({ message: 'Attempt deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

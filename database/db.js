@@ -18,7 +18,8 @@ function initDatabase() {
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         role TEXT DEFAULT 'user',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        deleted_at DATETIME DEFAULT NULL
       )
     `);
 
@@ -117,6 +118,107 @@ function initDatabase() {
         FOREIGN KEY (user_id) REFERENCES users(id)
       )
     `);
+
+    // Auth logins
+    db.run(`
+      CREATE TABLE IF NOT EXISTS auth_logins (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        event TEXT NOT NULL,
+        ip_address TEXT,
+        user_agent TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      )
+    `);
+
+    // Exam attempts
+    db.run(`
+      CREATE TABLE IF NOT EXISTS exam_attempts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        mode TEXT NOT NULL,
+        started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        submitted_at DATETIME,
+        duration INTEGER,
+        total_questions INTEGER NOT NULL,
+        score_percent REAL,
+        correct_count INTEGER,
+        partial_count INTEGER,
+        incorrect_count INTEGER,
+        deleted_at DATETIME DEFAULT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      )
+    `);
+
+    // Exam attempt answers
+    db.run(`
+      CREATE TABLE IF NOT EXISTS exam_attempt_answers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        attempt_id INTEGER NOT NULL,
+        question_id INTEGER NOT NULL,
+        question_number INTEGER NOT NULL,
+        user_answer_json TEXT,
+        is_correct BOOLEAN,
+        is_partial BOOLEAN DEFAULT 0,
+        points REAL DEFAULT 0,
+        FOREIGN KEY (attempt_id) REFERENCES exam_attempts(id),
+        FOREIGN KEY (question_id) REFERENCES questions(id)
+      )
+    `);
+
+    // Study sessions
+    db.run(`
+      CREATE TABLE IF NOT EXISTS study_sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        filters TEXT,
+        question_count INTEGER DEFAULT 0,
+        correct_count INTEGER DEFAULT 0,
+        immediate_mode BOOLEAN DEFAULT 0,
+        status TEXT DEFAULT 'active',
+        started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        completed_at DATETIME,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      )
+    `);
+
+    // Study session questions
+    db.run(`
+      CREATE TABLE IF NOT EXISTS study_session_questions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id INTEGER NOT NULL,
+        question_id INTEGER NOT NULL,
+        question_number INTEGER NOT NULL,
+        user_answer TEXT,
+        is_correct BOOLEAN,
+        answered_at DATETIME,
+        FOREIGN KEY (session_id) REFERENCES study_sessions(id),
+        FOREIGN KEY (question_id) REFERENCES questions(id),
+        UNIQUE(session_id, question_number)
+      )
+    `);
+
+    // Add deleted_at column to users if it doesn't exist
+    db.run(`ALTER TABLE users ADD COLUMN deleted_at DATETIME DEFAULT NULL`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding deleted_at to users:', err);
+      }
+    });
+
+    // Add deleted_at column to exam_attempts if it doesn't exist
+    db.run(`ALTER TABLE exam_attempts ADD COLUMN deleted_at DATETIME DEFAULT NULL`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding deleted_at to exam_attempts:', err);
+      }
+    });
+
+    // Add role column to users if it doesn't exist
+    db.run(`ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('Error adding role to users:', err);
+      }
+    });
 
     console.log('Database schema initialized successfully');
   });

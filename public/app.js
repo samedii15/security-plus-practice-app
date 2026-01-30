@@ -9,8 +9,67 @@ const state = {
   timerInterval: null,
   timeRemaining: 90 * 60, // 90 minutes in seconds
   examStartTime: null,
-  theme: localStorage.getItem('theme') || 'dark'
+  theme: localStorage.getItem('theme') || 'dark',
+  mode: 'exam', // 'exam' or 'study'
+  studySession: null,
+  immediateFeedback: false,
+  currentFeedback: null
 };
+
+// Exam state persistence
+function saveExamState() {
+  if (!state.currentExam) return;
+  
+  const examState = {
+    currentExam: state.currentExam,
+    currentQuestionIndex: state.currentQuestionIndex,
+    answers: state.answers,
+    markedForReview: Array.from(state.markedForReview),
+    timeRemaining: state.timeRemaining,
+    examStartTime: state.examStartTime
+  };
+  
+  localStorage.setItem('examState', JSON.stringify(examState));
+}
+
+function loadExamState() {
+  const saved = localStorage.getItem('examState');
+  if (!saved) return false;
+  
+  try {
+    const examState = JSON.parse(saved);
+    
+    // Check if exam is still valid (not expired)
+    if (examState.examStartTime) {
+      const elapsed = Math.floor((Date.now() - examState.examStartTime) / 1000);
+      const maxTime = 90 * 60 + 60; // 91 minutes grace period
+      
+      if (elapsed > maxTime) {
+        clearExamState();
+        return false;
+      }
+      
+      // Restore state
+      state.currentExam = examState.currentExam;
+      state.currentQuestionIndex = examState.currentQuestionIndex;
+      state.answers = examState.answers;
+      state.markedForReview = new Set(examState.markedForReview);
+      state.timeRemaining = Math.max(0, examState.timeRemaining - Math.floor(elapsed / 10)); // Slight penalty for refresh
+      state.examStartTime = examState.examStartTime;
+      
+      return true;
+    }
+  } catch (e) {
+    console.error('Failed to load exam state:', e);
+    clearExamState();
+  }
+  
+  return false;
+}
+
+function clearExamState() {
+  localStorage.removeItem('examState');
+}
 
 // API Base URL
 const API_URL = window.location.origin;
@@ -135,6 +194,11 @@ async function handleLogin(e) {
     document.getElementById('logout-btn').style.display = 'inline-block';
     document.getElementById('login-form').reset();
     
+    // Show admin link if user is admin
+    if (data.user.role === 'admin') {
+      document.getElementById('admin-link').style.display = 'inline-block';
+    }
+    
     showScreen('dashboard-screen');
   } catch (err) {
     console.error('Login error:', err);
@@ -164,7 +228,30 @@ function checkAuth() {
     state.user = JSON.parse(user);
     document.getElementById('user-email').textContent = state.user.email;
     document.getElementById('logout-btn').style.display = 'inline-block';
-    showScreen('dashboard-screen');
+    
+    // Show admin link if user is admin
+    if (state.user.role === 'admin') {
+      const adminLink = document.getElementById('admin-link');
+      if (adminLink) {
+        adminLink.style.display = 'inline-block';
+      }
+    }
+    
+    // Try to restore exam state if exists
+    if (loadExamState()) {
+      initializeExam();
+      showScreen('exam-screen');
+      startTimer();
+      
+      // Show notification
+      const notification = document.createElement('div');
+      notification.style.cssText = 'position:fixed;top:80px;right:20px;background:var(--accent-secondary);color:white;padding:1rem;border-radius:8px;z-index:10000;';
+      notification.textContent = '✓ Exam resumed from last session';
+      document.body.appendChild(notification);
+      setTimeout(() => notification.remove(), 3000);
+    } else {
+      showScreen('dashboard-screen');
+    }
   } else {
     showScreen('login-screen');
   }
@@ -186,6 +273,7 @@ async function startExam(isRetakeMissed = false) {
     state.timeRemaining = data.duration * 60;
     state.examStartTime = Date.now();
     
+    saveExamState(); // Save initial state
     initializeExam();
     showScreen('exam-screen');
     startTimer();
@@ -214,6 +302,7 @@ function initializeExam() {
 function displayQuestion() {
   const question = state.currentExam.questions[state.currentQuestionIndex];
   const questionNum = state.currentQuestionIndex + 1;
+  const qtype = question.qtype || 'mcq';
   
   document.getElementById('current-question-num').textContent = questionNum;
   document.getElementById('question-text').textContent = question.question;
@@ -221,33 +310,56 @@ function displayQuestion() {
   const choicesContainer = document.getElementById('choices-container');
   choicesContainer.innerHTML = '';
   
-  ['A', 'B', 'C', 'D'].forEach(choice => {
-    const div = document.createElement('div');
-    div.className = 'choice-option';
+  // Handle different question types
+  if (qtype === 'pbq') {
+    // Render PBQ interface
+    const pbqData = question.pbq;
+    const userAnswer = state.answers[questionNum];
     
-    const radio = document.createElement('input');
-    radio.type = 'radio';
-    radio.name = 'answer';
-    radio.id = `choice-${choice}`;
-    radio.value = choice;
-    
-    if (state.answers[questionNum] === choice) {
-      radio.checked = true;
+    if (pbqData && pbqData.type === 'multi_select') {
+      renderMultiSelectPBQ(pbqData, userAnswer, questionNum);
+    } else if (pbqData && pbqData.type === 'ordering') {
+      renderOrderingPBQ(pbqData, userAnswer, questionNum);
+    } else if (pbqData && pbqData.type === 'matching') {
+      renderMatchingPBQ(pbqData, userAnswer, questionNum);
+    } else {
+      choicesContainer.innerHTML = '<p class="error">Unsupported PBQ type</p>';
     }
-    
-    radio.onchange = () => {
-      state.answers[questionNum] = choice;
-      updateQuestionGrid();
-    };
-    
-    const label = document.createElement('label');
-    label.htmlFor = `choice-${choice}`;
-    label.innerHTML = `<strong>${choice}.</strong> ${question.choices[choice]}`;
-    
-    div.appendChild(radio);
-    div.appendChild(label);
-    choicesContainer.appendChild(div);
-  });
+  } else {
+    // Render MCQ interface
+    ['A', 'B', 'C', 'D'].forEach(choice => {
+      const div = document.createElement('div');
+      div.className = 'choice-option';
+      
+      const radio = document.createElement('input');
+      radio.type = 'radio';
+      radio.name = 'answer';
+      radio.id = `choice-${choice}`;
+      radio.value = choice;
+      
+      if (state.answers[questionNum] === choice) {
+        radio.checked = true;
+      }
+      
+      radio.onchange = () => {
+        state.answers[questionNum] = choice;
+        updateQuestionGrid();
+        
+        // Submit answer immediately in study mode with immediate feedback
+        if (state.mode === 'study' && state.immediateFeedback && !state.currentFeedback) {
+          submitStudyAnswer(choice);
+        }
+      };
+      
+      const label = document.createElement('label');
+      label.htmlFor = `choice-${choice}`;
+      label.innerHTML = `<strong>${choice}.</strong> ${question.choices[choice]}`;
+      
+      div.appendChild(radio);
+      div.appendChild(label);
+      choicesContainer.appendChild(div);
+    });
+  }
   
   // Update mark for review button
   const markBtn = document.getElementById('mark-review-btn');
@@ -261,10 +373,217 @@ function displayQuestion() {
   
   // Update navigation buttons
   document.getElementById('prev-btn').disabled = state.currentQuestionIndex === 0;
-  document.getElementById('next-btn').disabled = 
-    state.currentQuestionIndex === state.currentExam.questions.length - 1;
+  
+  const isLastQuestion = state.currentQuestionIndex === state.currentExam.questions.length - 1;
+  
+  if (state.mode === 'study') {
+    // Show exit button in study mode
+    document.getElementById('exit-study-btn').style.display = 'inline-block';
+    document.getElementById('mark-review-btn').style.display = 'none';
+    
+    // Show finish button on last question
+    if (isLastQuestion) {
+      document.getElementById('next-btn').style.display = 'none';
+      document.getElementById('finish-study-btn').style.display = 'inline-block';
+    } else {
+      document.getElementById('next-btn').style.display = 'inline-block';
+      document.getElementById('finish-study-btn').style.display = 'none';
+    }
+    
+    // Update total questions display
+    document.getElementById('total-questions').textContent = state.currentExam.questions.length;
+  } else {
+    // Exam mode - hide study buttons
+    document.getElementById('exit-study-btn').style.display = 'none';
+    document.getElementById('mark-review-btn').style.display = 'inline-block';
+    document.getElementById('finish-study-btn').style.display = 'none';
+    document.getElementById('next-btn').style.display = 'inline-block';
+    document.getElementById('next-btn').disabled = isLastQuestion;
+    document.getElementById('total-questions').textContent = '90';
+  }
   
   updateQuestionGrid();
+}
+
+// PBQ rendering functions
+function renderMultiSelectPBQ(pbqData, userAnswer, questionNum) {
+  const selected = userAnswer?.selected || [];
+  const container = document.getElementById('choices-container');
+  
+  container.innerHTML = `
+    <div class="pbq-container pbq-multi-select">
+      <p class="pbq-prompt">${pbqData.prompt || 'Select all that apply:'}</p>
+      <div class="pbq-options" id="pbq-options"></div>
+    </div>
+  `;
+  
+  const optionsDiv = document.getElementById('pbq-options');
+  pbqData.options.forEach((option, index) => {
+    const div = document.createElement('div');
+    div.className = 'pbq-option';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = `pbq-option-${index}`;
+    checkbox.value = index;
+    checkbox.checked = selected.includes(index);
+    checkbox.onchange = () => {
+      const current = state.answers[questionNum] || { type: 'multi_select', selected: [] };
+      const selectedArr = current.selected || [];
+      
+      if (checkbox.checked) {
+        if (!selectedArr.includes(index)) {
+          selectedArr.push(index);
+        }
+      } else {
+        const idx = selectedArr.indexOf(index);
+        if (idx > -1) selectedArr.splice(idx, 1);
+      }
+      
+      state.answers[questionNum] = { type: 'multi_select', selected: selectedArr };
+      updateQuestionGrid();
+    };
+    
+    const label = document.createElement('label');
+    label.htmlFor = `pbq-option-${index}`;
+    label.textContent = option;
+    
+    div.appendChild(checkbox);
+    div.appendChild(label);
+    optionsDiv.appendChild(div);
+  });
+}
+
+function renderOrderingPBQ(pbqData, userAnswer, questionNum) {
+  const items = pbqData.items || pbqData.options || [];
+  const order = userAnswer?.order || items.map((_, i) => i);
+  const container = document.getElementById('choices-container');
+  
+  container.innerHTML = `
+    <div class="pbq-container pbq-ordering">
+      <p class="pbq-prompt">${pbqData.prompt || 'Drag items to reorder them:'}</p>
+      <p class="pbq-instruction">Drag items to reorder (top = first)</p>
+      <div class="pbq-ordering-list" id="pbq-ordering-list"></div>
+    </div>
+  `;
+  
+  const list = document.getElementById('pbq-ordering-list');
+  order.forEach((itemIndex, position) => {
+    const div = document.createElement('div');
+    div.className = 'pbq-ordering-item';
+    div.draggable = true;
+    div.dataset.index = itemIndex;
+    div.innerHTML = `
+      <span class="drag-handle">☰</span>
+      <span class="item-number">${position + 1}.</span>
+      <span class="item-text">${items[itemIndex]}</span>
+    `;
+    list.appendChild(div);
+  });
+  
+  // Initialize drag and drop
+  initOrderingDragDrop(list, questionNum);
+}
+
+function renderMatchingPBQ(pbqData, userAnswer, questionNum) {
+  const left = pbqData.left || [];
+  const right = pbqData.right || [];
+  const map = userAnswer?.map || {};
+  const container = document.getElementById('choices-container');
+  
+  container.innerHTML = `
+    <div class="pbq-container pbq-matching">
+      <p class="pbq-prompt">${pbqData.prompt || 'Match items on the left with items on the right:'}</p>
+      <div class="pbq-matching-grid" id="pbq-matching-grid"></div>
+    </div>
+  `;
+  
+  const grid = document.getElementById('pbq-matching-grid');
+  grid.innerHTML = '<div class="pbq-matching-left"></div><div class="pbq-matching-middle"></div><div class="pbq-matching-right"></div>';
+  
+  const leftDiv = grid.querySelector('.pbq-matching-left');
+  const middleDiv = grid.querySelector('.pbq-matching-middle');
+  const rightDiv = grid.querySelector('.pbq-matching-right');
+  
+  left.forEach((item, index) => {
+    leftDiv.innerHTML += `<div class="pbq-matching-item"><strong>${index + 1}.</strong> ${item}</div>`;
+    
+    const select = document.createElement('select');
+    select.className = 'pbq-matching-select';
+    select.innerHTML = '<option value="">-- Select --</option>';
+    right.forEach((rightItem, rightIndex) => {
+      const option = document.createElement('option');
+      option.value = rightIndex;
+      option.textContent = String.fromCharCode(65 + rightIndex);
+      if (map[index] == rightIndex) option.selected = true;
+      select.appendChild(option);
+    });
+    
+    select.onchange = () => {
+      const current = state.answers[questionNum] || { type: 'matching', map: {} };
+      if (select.value === '') {
+        delete current.map[index];
+      } else {
+        current.map[index] = parseInt(select.value);
+      }
+      state.answers[questionNum] = current;
+      updateQuestionGrid();
+    };
+    
+    middleDiv.appendChild(select);
+  });
+  
+  right.forEach((item, index) => {
+    rightDiv.innerHTML += `<div class="pbq-matching-item"><strong>${String.fromCharCode(65 + index)}.</strong> ${item}</div>`;
+  });
+}
+
+function initOrderingDragDrop(list, questionNum) {
+  let draggedItem = null;
+  
+  list.addEventListener('dragstart', (e) => {
+    if (e.target.classList.contains('pbq-ordering-item')) {
+      draggedItem = e.target;
+      e.target.style.opacity = '0.5';
+    }
+  });
+  
+  list.addEventListener('dragend', (e) => {
+    if (e.target.classList.contains('pbq-ordering-item')) {
+      e.target.style.opacity = '1';
+      
+      // Update answer
+      const items = list.querySelectorAll('.pbq-ordering-item');
+      const order = Array.from(items).map(item => parseInt(item.dataset.index));
+      state.answers[questionNum] = { type: 'ordering', order };
+      updateQuestionGrid();
+    }
+  });
+  
+  list.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    const afterElement = getDragAfterElement(list, e.clientY);
+    if (afterElement == null) {
+      list.appendChild(draggedItem);
+    } else {
+      list.insertBefore(draggedItem, afterElement);
+    }
+  });
+  
+  function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.pbq-ordering-item:not([style*="opacity: 0.5"])')];
+    
+    return draggableElements.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      
+      if (offset < 0 && offset > closest.offset) {
+        return { offset: offset, element: child };
+      } else {
+        return closest;
+      }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+  }
 }
 
 function updateQuestionGrid() {
@@ -283,6 +602,8 @@ function updateQuestionGrid() {
       item.classList.add('marked');
     }
   });
+  
+  saveExamState(); // Save state on any update
 }
 
 function navigateToQuestion(index) {
@@ -298,6 +619,12 @@ function handlePrevious() {
 }
 
 function handleNext() {
+  // In study mode with immediate feedback, check if answer was submitted
+  if (state.mode === 'study' && state.immediateFeedback && state.currentFeedback) {
+    // Clear feedback for next question
+    state.currentFeedback = null;
+  }
+  
   if (state.currentQuestionIndex < state.currentExam.questions.length - 1) {
     state.currentQuestionIndex++;
     displayQuestion();
@@ -371,9 +698,14 @@ async function submitExam() {
     const results = await apiCall(
       `/api/exams/${state.currentExam.examId}/submit`,
       'POST',
-      { answers: state.answers, timeUsed }
+      { 
+        answers: state.answers, 
+        timeUsed,
+        attemptId: state.currentExam.attemptId 
+      }
     );
     
+    clearExamState(); // Clear saved state after successful submit
     document.getElementById('timer-bar').style.display = 'none';
     displayResults(results);
     showScreen('results-screen');
@@ -421,7 +753,17 @@ function displayReview() {
   const reviewQuestions = document.getElementById('review-questions');
   
   reviewContainer.style.display = 'block';
-  reviewQuestions.innerHTML = state.currentResults.results.map(q => `
+  reviewQuestions.innerHTML = state.currentResults.results.map(q => {
+    if (q.qtype === 'pbq') {
+      return renderPBQReviewItem(q);
+    } else {
+      return renderMCQReviewItem(q);
+    }
+  }).join('');
+}
+
+function renderMCQReviewItem(q) {
+  return `
     <div class="review-question ${q.isCorrect ? 'correct' : 'incorrect'}">
       <div class="review-header">
         <h4>Question ${q.questionNumber}</h4>
@@ -448,8 +790,124 @@ function displayReview() {
       <div class="review-explanation">
         <strong>Explanation:</strong> ${q.explanation}
       </div>
+      ${q.domain ? `<div class="review-domain"><strong>Domain:</strong> ${q.domain}</div>` : ''}
     </div>
-  `).join('');
+  `;
+}
+
+function renderPBQReviewItem(q) {
+  let correctData = null;
+  try {
+    correctData = typeof q.correctAnswer === 'string' ? JSON.parse(q.correctAnswer) : q.correctAnswer;
+  } catch (e) {
+    correctData = q.correctAnswer;
+  }
+  
+  let comparisonHTML = '';
+  
+  if (correctData && correctData.type === 'multi_select') {
+    comparisonHTML = renderMultiSelectReview(correctData, q.userAnswer);
+  } else if (correctData && correctData.type === 'ordering') {
+    comparisonHTML = renderOrderingReview(correctData, q.userAnswer);
+  } else if (correctData && correctData.type === 'matching') {
+    comparisonHTML = renderMatchingReview(correctData, q.userAnswer);
+  } else {
+    comparisonHTML = '<p>Unable to display PBQ comparison</p>';
+  }
+  
+  return `
+    <div class="review-question pbq-review ${q.isCorrect ? 'correct' : 'incorrect'}">
+      <div class="review-header">
+        <h4>Question ${q.questionNumber} (PBQ)</h4>
+        <span class="review-badge ${q.isCorrect ? 'correct' : 'incorrect'}">
+          ${q.isCorrect ? '✓ Correct' : '✗ Incorrect'}
+        </span>
+      </div>
+      <p class="review-question-text">${q.question}</p>
+      ${comparisonHTML}
+      <div class="review-explanation">
+        <strong>Explanation:</strong> ${q.explanation}
+      </div>
+      ${q.domain ? `<div class="review-domain"><strong>Domain:</strong> ${q.domain}</div>` : ''}
+    </div>
+  `;
+}
+
+function renderMultiSelectReview(correctData, userAnswer) {
+  const userSelected = userAnswer?.selected || [];
+  const correctIndices = correctData.correct || [];
+  const options = correctData.options || [];
+  
+  let html = '<div class="pbq-review-multi-select"><div class="pbq-review-columns">';
+  html += '<div class="pbq-review-column"><p><strong>Your selections:</strong></p><ul>';
+  
+  if (userSelected.length === 0) {
+    html += '<li class="not-answered">No selections made</li>';
+  } else {
+    userSelected.forEach(idx => {
+      const isCorrectChoice = correctIndices.includes(idx);
+      html += `<li class="${isCorrectChoice ? 'correct-choice' : 'wrong-choice'}">${options[idx]}</li>`;
+    });
+  }
+  
+  html += '</ul></div><div class="pbq-review-column"><p><strong>Correct answer:</strong></p><ul>';
+  correctIndices.forEach(idx => {
+    html += `<li class="correct-choice">${options[idx]}</li>`;
+  });
+  html += '</ul></div></div></div>';
+  
+  return html;
+}
+
+function renderOrderingReview(correctData, userAnswer) {
+  const userOrder = userAnswer?.order || [];
+  const correctOrder = correctData.correct_order || [];
+  const items = correctData.items || correctData.options || [];
+  
+  let html = '<div class="pbq-review-ordering"><div class="pbq-review-columns">';
+  html += '<div class="pbq-review-column"><p><strong>Your order:</strong></p><ol>';
+  
+  if (userOrder.length === 0) {
+    html += '<li class="not-answered">Not answered</li>';
+  } else {
+    userOrder.forEach((idx, pos) => {
+      const isCorrectPos = correctOrder[pos] === idx;
+      html += `<li class="${isCorrectPos ? 'correct-pos' : 'wrong-pos'}">${items[idx]}</li>`;
+    });
+  }
+  
+  html += '</ol></div><div class="pbq-review-column"><p><strong>Correct order:</strong></p><ol>';
+  correctOrder.forEach(idx => {
+    html += `<li class="correct-choice">${items[idx]}</li>`;
+  });
+  html += '</ol></div></div></div>';
+  
+  return html;
+}
+
+function renderMatchingReview(correctData, userAnswer) {
+  const userMap = userAnswer?.map || {};
+  const correctMap = correctData.correct_map || {};
+  const left = correctData.left || [];
+  const right = correctData.right || [];
+  
+  let html = '<div class="pbq-review-matching"><table class="matching-table">';
+  html += '<thead><tr><th>Item</th><th>Your Match</th><th>Correct Match</th></tr></thead><tbody>';
+  
+  left.forEach((leftItem, leftIdx) => {
+    const userRightIdx = userMap[leftIdx];
+    const correctRightIdx = correctMap[leftIdx];
+    const isCorrectMatch = userRightIdx == correctRightIdx;
+    
+    html += `<tr class="${isCorrectMatch ? 'correct-row' : 'wrong-row'}">`;
+    html += `<td><strong>${leftIdx + 1}.</strong> ${leftItem}</td>`;
+    html += `<td>${userRightIdx !== undefined ? `<strong>${String.fromCharCode(65 + userRightIdx)}.</strong> ${right[userRightIdx]}` : '<em>Not answered</em>'}</td>`;
+    html += `<td><strong>${String.fromCharCode(65 + correctRightIdx)}.</strong> ${right[correctRightIdx]}</td>`;
+    html += '</tr>';
+  });
+  
+  html += '</tbody></table></div>';
+  return html;
 }
 
 async function loadExamHistory() {
@@ -501,40 +959,206 @@ async function viewExamReview(examId) {
     `;
     
     const reviewDetailDiv = document.getElementById('review-detail-questions');
-    reviewDetailDiv.innerHTML = review.results.map(q => `
-      <div class="review-question ${q.isCorrect ? 'correct' : 'incorrect'}">
-        <div class="review-header">
-          <h4>Question ${q.questionNumber}</h4>
-          <span class="review-badge ${q.isCorrect ? 'correct' : 'incorrect'}">
-            ${q.isCorrect ? '✓ Correct' : '✗ Incorrect'}
-          </span>
-        </div>
-        <p class="review-question-text">${q.question}</p>
-        <div class="review-choices">
-          ${['A', 'B', 'C', 'D'].map(choice => {
-            let className = 'review-choice';
-            if (choice === q.correctAnswer) className += ' correct-answer';
-            if (choice === q.userAnswer && !q.isCorrect) className += ' wrong-answer';
-            
-            return `
-              <div class="${className}">
-                <strong>${choice}.</strong> ${q.choices[choice]}
-                ${choice === q.userAnswer ? ' <em>(Your answer)</em>' : ''}
-                ${choice === q.correctAnswer ? ' <em>(Correct answer)</em>' : ''}
-              </div>
-            `;
-          }).join('')}
-        </div>
-        <div class="review-explanation">
-          <strong>Explanation:</strong> ${q.explanation}
-        </div>
-      </div>
-    `).join('');
+    reviewDetailDiv.innerHTML = review.results.map(q => {
+      if (q.qtype === 'pbq') {
+        return renderPBQReviewItem(q);
+      } else {
+        return renderMCQReviewItem(q);
+      }
+    }).join('');
     
     showScreen('exam-review-screen');
   } catch (err) {
     alert('Error loading exam review: ' + err.message);
   }
+}
+
+// ===== STUDY MODE FUNCTIONS =====
+
+async function loadDomains() {
+  try {
+    const data = await apiCall('/api/study/domains');
+    const select = document.getElementById('study-domains');
+    select.innerHTML = '<option value="">All Domains</option>';
+    data.forEach(domain => {
+      const option = document.createElement('option');
+      option.value = domain.domain; // Backend returns 'domain' field, not 'name'
+      option.textContent = `${domain.domain} (${domain.count} questions)`;
+      select.appendChild(option);
+    });
+  } catch (error) {
+    console.error('Failed to load domains:', error);
+  }
+}
+
+async function startStudySession() {
+  const questionCount = parseInt(document.getElementById('study-question-count').value);
+  const domainSelect = document.getElementById('study-domains');
+  const selectedDomains = Array.from(domainSelect.selectedOptions)
+    .map(opt => opt.value)
+    .filter(v => v !== '');
+  const difficulty = document.getElementById('study-difficulty').value;
+  const type = document.getElementById('study-type').value;
+  const onlyMissed = document.getElementById('study-only-missed').checked;
+  const immediateMode = document.getElementById('study-immediate-feedback').checked;
+
+  try {
+    const options = {
+      questionCount,
+      immediateMode
+    };
+
+    if (selectedDomains.length > 0) options.domains = selectedDomains;
+    if (difficulty) options.difficulty = difficulty;
+    if (type) options.type = type;
+    if (onlyMissed) options.onlyMissed = true;
+
+    const data = await apiCall('/api/study/start', 'POST', options);
+    
+    state.mode = 'study';
+    state.studySession = data;
+    state.currentExam = { questions: data.questions };
+    state.currentQuestionIndex = 0;
+    state.answers = {};
+    state.markedForReview = new Set();
+    state.immediateFeedback = immediateMode;
+    state.currentFeedback = null;
+
+    showScreen('exam-screen');
+    initializeExam();
+    displayQuestion();
+    
+    // Hide timer for study mode
+    document.getElementById('timer-bar').style.display = 'none';
+    
+  } catch (error) {
+    alert('Failed to start study session: ' + error.message);
+  }
+}
+
+function toggleMode(mode) {
+  const examBtn = document.getElementById('exam-mode-btn');
+  const studyBtn = document.getElementById('study-mode-btn');
+  const examActions = document.getElementById('exam-mode-actions');
+  const studyOptions = document.getElementById('study-mode-options');
+  const infoTitle = document.getElementById('mode-info-title');
+  const infoList = document.getElementById('mode-info-list');
+
+  if (mode === 'exam') {
+    examBtn.classList.add('active');
+    studyBtn.classList.remove('active');
+    examActions.style.display = 'flex';
+    studyOptions.style.display = 'none';
+    infoTitle.textContent = 'Exam Information';
+    infoList.innerHTML = `
+      <li>90 questions per exam</li>
+      <li>90 minutes time limit</li>
+      <li>Passing score: 75%</li>
+      <li>Questions are randomly selected from the question bank</li>
+      <li>You can mark questions for review and navigate between them</li>
+    `;
+  } else {
+    examBtn.classList.remove('active');
+    studyBtn.classList.add('active');
+    examActions.style.display = 'none';
+    studyOptions.style.display = 'block';
+    infoTitle.textContent = 'Study Mode Benefits';
+    infoList.innerHTML = `
+      <li>Practice without time pressure</li>
+      <li>Filter by domain, difficulty, and question type</li>
+      <li>Get immediate feedback on your answers</li>
+      <li>Focus on questions you got wrong previously</li>
+      <li>Customize the number of questions</li>
+    `;
+    loadDomains();
+  }
+}
+
+async function submitStudyAnswer(answer) {
+  if (!state.immediateFeedback || !state.studySession) return;
+
+  try {
+    const currentQ = state.currentExam.questions[state.currentQuestionIndex];
+    const data = await apiCall(
+      `/api/study/${state.studySession.id}/answer`,
+      'POST',
+      {
+        questionNumber: state.currentQuestionIndex + 1,
+        answer: answer
+      }
+    );
+
+    state.currentFeedback = data;
+    displayImmediateFeedback(data);
+    
+  } catch (error) {
+    console.error('Failed to submit study answer:', error);
+  }
+}
+
+function displayImmediateFeedback(feedback) {
+  const container = document.getElementById('choices-container');
+  
+  // Create feedback box
+  const feedbackBox = document.createElement('div');
+  feedbackBox.className = `feedback-box ${feedback.isCorrect ? 'correct' : 'incorrect'}`;
+  feedbackBox.innerHTML = `
+    <div class="feedback-header">
+      <span class="feedback-icon">${feedback.isCorrect ? '✓' : '✗'}</span>
+      <span class="feedback-title">${feedback.isCorrect ? 'Correct!' : 'Incorrect'}</span>
+    </div>
+    <div class="feedback-content">
+      <p><strong>Correct Answer:</strong> ${formatCorrectAnswer(feedback.correctAnswer, feedback.question)}</p>
+      ${feedback.question.explanation ? `<p><strong>Explanation:</strong> ${feedback.question.explanation}</p>` : ''}
+    </div>
+  `;
+  
+  container.appendChild(feedbackBox);
+  
+  // Disable further input
+  const inputs = container.querySelectorAll('input, select');
+  inputs.forEach(input => input.disabled = true);
+}
+
+function finishStudySession() {
+  if (state.mode === 'study') {
+    const answered = Object.keys(state.answers).length;
+    const total = state.currentExam.questions.length;
+    
+    if (confirm(`You've answered ${answered} of ${total} questions. Are you sure you want to finish this study session?`)) {
+      state.mode = 'exam';
+      state.studySession = null;
+      state.currentExam = null;
+      state.currentFeedback = null;
+      state.answers = {};
+      showScreen('dashboard-screen');
+    }
+  }
+}
+
+function formatCorrectAnswer(answer, question) {
+  const qtype = question.qtype || 'mcq';
+  
+  if (qtype === 'mcq') {
+    // answer is like "A", question.choices is {A: "text", B: "text", ...}
+    if (typeof answer === 'string' && question.choices && question.choices[answer]) {
+      return `${answer}) ${question.choices[answer]}`;
+    }
+    return answer;
+  } else if (qtype === 'pbq') {
+    // Handle PBQ correct answers
+    if (typeof answer === 'object') {
+      if (answer.type === 'multi_select' && Array.isArray(answer.correct)) {
+        return answer.correct.map(idx => `• ${answer.options[idx]}`).join('<br>');
+      } else if (answer.type === 'ordering' && Array.isArray(answer.correct_order)) {
+        return answer.correct_order.map((item, i) => `${i + 1}. ${item}`).join('<br>');
+      } else if (answer.type === 'matching' && answer.correct_map) {
+        return Object.entries(answer.correct_map).map(([key, value]) => `${key} → ${value}`).join('<br>');
+      }
+    }
+    return JSON.stringify(answer);
+  }
+  return JSON.stringify(answer);
 }
 
 // Event Listeners
@@ -565,12 +1189,19 @@ document.addEventListener('DOMContentLoaded', () => {
     showScreen('history-screen');
   });
   
+  // Study mode event listeners
+  document.getElementById('exam-mode-btn').addEventListener('click', () => toggleMode('exam'));
+  document.getElementById('study-mode-btn').addEventListener('click', () => toggleMode('study'));
+  document.getElementById('start-study-btn').addEventListener('click', startStudySession);
+  
   // Exam event listeners
   document.getElementById('prev-btn').addEventListener('click', handlePrevious);
   document.getElementById('next-btn').addEventListener('click', handleNext);
   document.getElementById('mark-review-btn').addEventListener('click', handleMarkReview);
   document.getElementById('clear-answer-btn').addEventListener('click', handleClearAnswer);
   document.getElementById('submit-exam-btn').addEventListener('click', submitExam);
+  document.getElementById('exit-study-btn').addEventListener('click', finishStudySession);
+  document.getElementById('finish-study-btn').addEventListener('click', finishStudySession);
   
   // Results event listeners
   document.getElementById('review-answers-btn').addEventListener('click', displayReview);

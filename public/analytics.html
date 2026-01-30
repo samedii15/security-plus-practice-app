@@ -40,12 +40,13 @@
         }
 
         .stat-card {
-            background: white;
+            background: var(--bg-secondary);
             padding: 25px;
             border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px var(--shadow);
             text-align: center;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid var(--border-color);
         }
 
         .stat-card:hover {
@@ -60,7 +61,7 @@
         }
 
         .stat-label {
-            color: #666;
+            color: var(--text-secondary);
             font-size: 1.1em;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -73,17 +74,18 @@
         .stat-card.weak .stat-value { color: #ef4444; }
 
         .section {
-            background: white;
+            background: var(--bg-secondary);
             padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px var(--shadow);
             margin-bottom: 30px;
+            border: 1px solid var(--border-color);
         }
 
         .section h2 {
             margin-top: 0;
-            color: #333;
-            border-bottom: 3px solid #667eea;
+            color: var(--accent-primary);
+            border-bottom: 3px solid var(--accent-primary);
             padding-bottom: 10px;
         }
 
@@ -94,29 +96,33 @@
         }
 
         .domain-item {
-            background: #f8f9fa;
+            background: var(--bg-tertiary);
             padding: 15px;
             border-radius: 8px;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid var(--accent-primary);
         }
 
         .domain-name {
             font-weight: bold;
             margin-bottom: 5px;
+            color: var(--text-primary);
         }
 
         .domain-stats {
             display: flex;
             justify-content: space-between;
             font-size: 0.9em;
-            color: #666;
+            color: var(--text-secondary);
         }
 
         .progress-bar {
             width: 100%;
             height: 8px;
-            background: #e5e7eb;
+            background: var(--bg-tertiary);
             border-radius: 4px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
             overflow: hidden;
             margin-top: 8px;
         }
@@ -147,7 +153,7 @@
         }
 
         .weak-area-item {
-            background: #fef3c7;
+            background: rgba(245, 158, 11, 0.1);
             border-left: 4px solid #f59e0b;
             padding: 15px;
             margin-bottom: 10px;
@@ -155,7 +161,7 @@
         }
 
         .weak-area-item.critical {
-            background: #fee2e2;
+            background: rgba(239, 68, 68, 0.1);
             border-left-color: #ef4444;
         }
 
@@ -178,8 +184,8 @@
         }
 
         .recommendation-item {
-            background: #f0f9ff;
-            border-left: 4px solid #3b82f6;
+            background: var(--bg-tertiary);
+            border-left: 4px solid var(--accent-primary);
             padding: 15px;
             margin-bottom: 10px;
             border-radius: 8px;
@@ -188,19 +194,19 @@
         .recommendation-item strong {
             display: block;
             margin-bottom: 5px;
-            color: #1e40af;
+            color: var(--accent-primary);
         }
 
         .loading {
             text-align: center;
             padding: 50px;
             font-size: 1.2em;
-            color: #666;
+            color: var(--text-secondary);
         }
 
         .error {
-            background: #fee2e2;
-            color: #991b1b;
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
             padding: 20px;
             border-radius: 8px;
             border-left: 4px solid #ef4444;
@@ -209,11 +215,11 @@
         .no-data {
             text-align: center;
             padding: 50px;
-            color: #666;
+            color: var(--text-secondary);
         }
 
         .no-data h3 {
-            color: #333;
+            color: var(--text-primary);
             margin-bottom: 10px;
         }
 
@@ -302,7 +308,7 @@
             <!-- Weak Areas Section -->
             <div class="section" id="weak-areas-section">
                 <h2>🎯 Priority Focus Areas</h2>
-                <p style="color: #666; margin-bottom: 20px;">These areas need the most attention based on your performance:</p>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">These areas need the most attention based on your performance:</p>
                 <ul class="weak-areas-list" id="weak-areas-list"></ul>
             </div>
 
@@ -327,48 +333,76 @@
     </div>
 
     <script>
-        const API_URL = 'http://localhost:3000';
+        const API_URL = window.location.origin;
         let token = localStorage.getItem('token');
 
-        // Redirect if not logged in
+        console.log('Analytics page loaded');
+        console.log('Token exists:', !!token);
+        console.log('API_URL:', API_URL);
+
+        // Redirect if not logged in (but don't redirect immediately, let loadAnalytics handle it)
         if (!token) {
-            window.location.href = 'index.html';
+            console.log('No token found, redirecting to login in 1 second');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1000);
         }
 
         async function loadAnalytics() {
+            console.log('loadAnalytics called');
+            
+            if (!token) {
+                console.error('No token available');
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').textContent = 'Please login first';
+                document.getElementById('error').style.display = 'block';
+                return;
+            }
+            
             try {
-                const response = await fetch(`${API_URL}/api/analytics`, {
+                const url = `${API_URL}/api/analytics`;
+                console.log('Fetching:', url);
+                
+                const response = await fetch(url, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
                 });
 
+                console.log('Response status:', response.status);
+
                 if (!response.ok) {
                     if (response.status === 401) {
+                        console.log('Unauthorized, clearing token');
                         localStorage.removeItem('token');
                         window.location.href = 'index.html';
                         return;
                     }
-                    throw new Error('Failed to load analytics');
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    throw new Error('Failed to load analytics: ' + response.status);
                 }
 
                 const data = await response.json();
+                console.log('Analytics data received:', data);
                 
                 document.getElementById('loading').style.display = 'none';
 
                 // Check if user has taken any exams
-                if (data.overall.totalExams === 0) {
+                if (!data.overall || data.overall.totalExams === 0) {
+                    console.log('No exams taken yet');
                     document.getElementById('no-data').style.display = 'block';
                     return;
                 }
 
+                console.log('Displaying analytics');
                 document.getElementById('analytics-content').style.display = 'block';
                 displayAnalytics(data);
             } catch (error) {
                 console.error('Error loading analytics:', error);
                 document.getElementById('loading').style.display = 'none';
                 const errorDiv = document.getElementById('error');
-                errorDiv.textContent = 'Failed to load analytics. Please try again.';
+                errorDiv.textContent = 'Failed to load analytics: ' + error.message;
                 errorDiv.style.display = 'block';
             }
         }
@@ -409,7 +443,7 @@
                     li.innerHTML = `
                         <strong>${area.name}</strong>
                         <span class="priority-badge ${priorityClass}">Priority: ${area.priority.toFixed(0)}</span>
-                        <div style="margin-top: 5px; color: #666;">
+                        <div style="margin-top: 5px; color: var(--text-secondary);">
                             Accuracy: ${area.accuracy.toFixed(1)}% | ${area.correct}/${area.total} questions
                         </div>
                     `;
@@ -421,13 +455,14 @@
             const recommendationsList = document.getElementById('recommendations-list');
             recommendationsList.innerHTML = '';
             
-            if (data.recommendations.length === 0) {
+            if (!data.recommendations || data.recommendations.length === 0) {
                 document.getElementById('recommendations-section').style.display = 'none';
             } else {
                 data.recommendations.forEach(rec => {
                     const li = document.createElement('li');
                     li.className = 'recommendation-item';
-                    li.innerHTML = `<strong>${rec.title}</strong> ${rec.description}`;
+                    // Backend returns: category, priority, message, action
+                    li.innerHTML = `<strong>${rec.message || rec.title || 'Recommendation'}</strong> ${rec.action || rec.description || ''}`;
                     recommendationsList.appendChild(li);
                 });
             }

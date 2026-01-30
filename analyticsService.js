@@ -99,16 +99,32 @@ async function getUserAnalytics(userId) {
                           overallStats
                         );
 
+                        // Get last exam date
+                        const lastExamDate = recentExams.length > 0 ? recentExams[0].submitted_at : null;
+
                         resolve({
                           overall: {
                             totalExams: overallStats.total_exams || 0,
                             totalQuestions: overallStats.total_answered || 0,
                             correctAnswers: overallStats.total_correct || 0,
                             accuracy: overallStats.overall_accuracy || 0,
+                            strength: getStrengthLevel(overallStats.overall_accuracy || 0),
+                            lastExamDate: lastExamDate,
                             questionsPerExam: overallStats.total_exams > 0 
                               ? Math.round(overallStats.total_answered / overallStats.total_exams)
                               : 0
                           },
+                          domains: domainStats.map(d => ({
+                            name: d.domain,
+                            total: d.total_questions,
+                            correct: d.correct_answers,
+                            accuracy: d.accuracy,
+                            errorRate: d.error_rate,
+                            strength: getStrengthLevel(d.accuracy)
+                          })),
+                          topics: topicStats,
+                          weakAreas: weakAreas,
+                          recommendations: recommendations,
                           byDomain: domainStats.map(d => ({
                             domain: d.domain,
                             totalQuestions: d.total_questions,
@@ -126,7 +142,6 @@ async function getUserAnalytics(userId) {
                           })),
                           byTopic: topicStats,
                           weakestAreas: weakAreas,
-                          recommendations: recommendations,
                           recentTrend: recentExams.map(e => ({
                             examId: e.id,
                             date: e.submitted_at,
@@ -194,8 +209,11 @@ function analyzeTopics(questions) {
     if (topicStats[topic].total > 0) {
       const accuracy = Math.round((topicStats[topic].correct / topicStats[topic].total) * 100);
       result.push({
+        name: topic,
         topic,
+        total: topicStats[topic].total,
         totalQuestions: topicStats[topic].total,
+        correct: topicStats[topic].correct,
         correctAnswers: topicStats[topic].correct,
         accuracy,
         strength: getStrengthLevel(accuracy)
@@ -244,7 +262,14 @@ function identifyWeakAreas(domainStats, topicStats) {
     .slice(0, 5)
     .map((area, index) => ({
       rank: index + 1,
-      ...area
+      name: area.name,
+      accuracy: area.accuracy,
+      correct: Math.round(area.questionsAttempted * area.accuracy / 100),
+      total: area.questionsAttempted,
+      questionsAttempted: area.questionsAttempted,
+      priority: area.priority,
+      type: area.type,
+      recommendation: area.recommendation
     }));
 }
 

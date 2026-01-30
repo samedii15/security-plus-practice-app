@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { db } from './database/db.js';
+import { db, run } from './database/db.js';
 import { logAudit, EventTypes } from './auditService.js';
 
 // Register new user
@@ -38,10 +38,20 @@ async function register(email, password, req = null) {
           // Log registration
           logAudit(EventTypes.REGISTER, userId, { email: email.toLowerCase() }, req);
 
+          // Generate JWT token for auto-login after registration
+          const token = jwt.sign(
+            { id: userId, email: email.toLowerCase(), role: 'user' },
+            process.env.JWT_SECRET || 'default-secret-change-in-production',
+            { expiresIn: '24h' }
+          );
+
           resolve({
-            id: userId,
-            email: email.toLowerCase(),
-            message: 'User registered successfully'
+            token,
+            user: {
+              id: userId,
+              email: email.toLowerCase(),
+              role: 'user'
+            }
           });
         }
       );
@@ -88,6 +98,17 @@ async function login(email, password, req = null) {
 
           // Log successful login
           logAudit(EventTypes.LOGIN_SUCCESS, user.id, { email: user.email }, req);
+
+          // Insert into auth_logins table
+          const ipAddress = req?.ip || req?.connection?.remoteAddress || 'unknown';
+          const userAgent = req?.headers?.['user-agent'] || 'unknown';
+          
+          run(
+            'INSERT INTO auth_logins (user_id, event, ip_address, user_agent) VALUES (?, ?, ?, ?)',
+            [user.id, 'login_success', ipAddress, userAgent]
+          ).catch(err => {
+            console.error('Error logging auth event:', err);
+          });
 
           // Generate JWT token with role
           const token = jwt.sign(
