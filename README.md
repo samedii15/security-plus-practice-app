@@ -450,6 +450,112 @@ npm start
 - Check that `.env` has JWT_SECRET set
 - Verify password meets 8-character minimum
 
+## 🏗️ Development & Testing
+
+### Database Migrations
+
+This project uses a migration-based schema management system for safe database evolution:
+
+```bash
+# Run all pending migrations
+npm run migrate
+
+# Roll back the last migration
+npm run migrate:down
+
+# Check migration status
+npm run migrate:status
+```
+
+Migrations are located in `migrations/` directory and run automatically on first startup if no database exists.
+
+### Running Tests
+
+```bash
+# Run integration tests (requires server running)
+npm test
+
+# Run PBQ scoring tests
+npm run test:pbq
+```
+
+The integration test suite includes 17 comprehensive tests covering:
+- Full authentication lifecycle (register → login → JWT usage)
+- Exam creation and submission
+- Database row verification
+- Ownership and access control
+- Input validation
+- GDPR data export
+
+### Code Quality
+
+```bash
+# Run ESLint
+npm run lint
+
+# Auto-fix lint errors
+npm run lint:fix
+```
+
+ESLint configuration enforces:
+- ES2022 standards
+- Consistent code style
+- Best practices
+- No unused variables
+
+### CI/CD
+
+GitHub Actions workflow (`.github/workflows/ci.yml`) automatically:
+- Runs linter on push/PR
+- Executes integration tests
+- Tests on Node.js 18.x, 20.x, 22.x
+- Fails builds on any errors
+
+## 🔒 Security Architecture
+
+This application implements enterprise-grade security practices:
+
+**Authentication & Authorization:**
+- JWT tokens with 7-day expiry
+- Bcrypt password hashing
+- Role-based access control (user/admin)
+- Ownership verification on all user data
+
+**Input Validation:**
+- Strict validation middleware on all endpoints
+- Email format validation
+- Password strength requirements
+- Type checking for all request payloads
+
+**Attack Prevention:**
+- Rate limiting (10 req/15min auth, 100 req/15min API)
+- No answer leakage (correct answers only after submission)
+- SQL injection protection (parameterized queries)
+- XSS protection (Helmet.js CSP headers)
+- Soft deletes with cascade
+
+**Audit & Observability:**
+- Request logging with unique IDs and duration
+- Auth login tracking (90-day retention)
+- Admin action audit logs (180-day retention)
+- Health endpoint with DB connectivity checks
+- Automated data cleanup (30-day soft delete purge)
+
+For complete security details, see [ARCHITECTURE.md](ARCHITECTURE.md).
+
+## 📐 Architecture
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for comprehensive documentation including:
+- System architecture diagram
+- Complete data model with table schemas
+- PBQ scoring algorithm explanation
+- Security architecture and threat model
+- Request observability and logging
+- Database migration system
+- Integration testing strategy
+- Engineering decisions and tradeoffs
+- Production deployment checklist
+
 ## 🚀 Deployment
 
 ### Environment Setup
@@ -467,6 +573,18 @@ npm start
 - SQLite file (`comptia.db`) must be persisted
 - Set up regular backups
 - Consider migrating to PostgreSQL/MySQL for scale
+
+### Production Checklist
+- [ ] Set strong JWT_SECRET (not default)
+- [ ] Enable HTTPS (reverse proxy or cert)
+- [ ] Configure firewall (only 443/80 open)
+- [ ] Set up database backups (daily snapshots)
+- [ ] Monitor /api/health endpoint
+- [ ] Configure log rotation
+- [ ] Set up error tracking (Sentry/LogRocket)
+- [ ] Enable CORS whitelist (not `*`)
+- [ ] Review rate limits for your traffic
+- [ ] Schedule cleanup jobs (cron or task scheduler)
 
 ## 📄 License
 
