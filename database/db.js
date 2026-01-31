@@ -7,10 +7,20 @@ import fs from "fs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const dbPath = path.join(__dirname, 'comptia.db');
+// Use explicit DB path with environment variable support
+const dbPath = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'cyberacademy.db');
+
+// Ensure data directory exists
+const dataDir = path.dirname(dbPath);
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+  console.log(`Created data directory: ${dataDir}`);
+}
 
 // Check if database exists, if not run migrations
 const dbExists = fs.existsSync(dbPath);
+
+console.log(`Database path: ${dbPath}`);
 
 const db = new sqlite3.Database(dbPath);
 

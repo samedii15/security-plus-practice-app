@@ -16,45 +16,59 @@ async function register(email, password, req = null) {
     }
 
     // Hash password
-    bcrypt.hash(password, 10, (err, hash) => {
-      if (err) {
-        return reject({ status: 500, message: 'Error hashing password' });
-      }
-
-      // Insert user into database with default role
-      db.run(
-        'INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)',
-        [email.toLowerCase(), hash, 'user'],
-        function(err) {
-          if (err) {
-            if (err.message.includes('UNIQUE')) {
-              return reject({ status: 409, message: 'Email already exists' });
-            }
-            return reject({ status: 500, message: 'Error creating user' });
-          }
-
-          const userId = this.lastID;
-          
-          // Log registration
-          logAudit(EventTypes.REGISTER, userId, { email: email.toLowerCase() }, req);
-
-          // Generate JWT token for auto-login after registration
-          const token = jwt.sign(
-            { id: userId, email: email.toLowerCase(), role: 'user' },
-            process.env.JWT_SECRET || 'default-secret-change-in-production',
-            { expiresIn: '24h' }
-          );
-
-          resolve({
-            token,
-            user: {
-              id: userId,
-              email: email.toLowerCase(),
-              role: 'user'
-            }
-          });
+      bcrypt.hash(password, 10, async (err, hash) => {
+        if (err) {
+          return reject({ status: 500, message: 'Error hashing password' });
         }
-      );
+
+        try {
+          // Check if this is the first user (should be admin)
+          const userCount = await new Promise((resolve, reject) => {
+            db.get('SELECT COUNT(*) as count FROM users', (err, result) => {
+              if (err) reject(err);
+              else resolve(result.count);
+            });
+          });
+
+          const role = userCount === 0 ? 'admin' : 'user';
+
+          // Insert user into database
+          db.run(
+            'INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)',
+            [email.toLowerCase(), hash, role],
+            function(err) {
+              if (err) {
+                if (err.message.includes('UNIQUE')) {
+                  return reject({ status: 409, message: 'Email already exists' });
+                }
+                return reject({ status: 500, message: 'Error creating user' });
+              }
+
+              const userId = this.lastID;
+              
+              // Log registration
+              logAudit(EventTypes.REGISTER, userId, { email: email.toLowerCase() }, req);
+
+              // Generate JWT token for auto-login after registration
+              const token = jwt.sign(
+                { id: userId, email: email.toLowerCase(), role: role },
+                process.env.JWT_SECRET || 'default-secret-change-in-production',
+                { expiresIn: '24h' }
+              );
+
+              resolve({
+                token,
+                user: {
+                  id: userId,
+                  email: email.toLowerCase(),
+                  role: role
+                }
+              });
+            }
+          );
+        } catch (err) {
+          return reject({ status: 500, message: 'Error creating user' });
+        }
     });
   });
 }
@@ -66,9 +80,9 @@ async function login(email, password, req = null) {
       return reject({ status: 400, message: 'Email and password are required' });
     }
 
-    // Find user by email
+    // Find user by email (only non-deleted users)
     db.get(
-      'SELECT id, email, password_hash, role FROM users WHERE email = ?',
+      'SELECT id, email, password_hash, role FROM users WHERE email = ? AND deleted_at IS NULL',
       [email.toLowerCase()],
       (err, user) => {
         if (err) {
@@ -77,7 +91,7 @@ async function login(email, password, req = null) {
 
         if (!user) {
           // Log failed login attempt
-          logAudit(EventTypes.LOGIN_FAILURE, null, { email: email.toLowerCase(), reason: 'User not found' }, req);
+          logAudit(EventTypes.LOGIN_FAILURE, null, { email: email.toLowerCase(), reason: 'User not found or deleted' }, req);
           return reject({ 
             status: 401, 
             message: 'Invalid credentials. Please check your email and password, or register if you don\'t have an account.' 

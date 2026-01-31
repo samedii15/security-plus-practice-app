@@ -97,6 +97,28 @@ function showSuccess(elementId, message) {
   element.style.display = 'block';
 }
 
+function showLoading(message = 'Loading...') {
+  // Remove any existing loading overlay
+  const existing = document.getElementById('loading-overlay');
+  if (existing) existing.remove();
+  
+  const overlay = document.createElement('div');
+  overlay.id = 'loading-overlay';
+  overlay.className = 'loading-overlay';
+  overlay.innerHTML = `
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">${message}</div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function hideLoading() {
+  const overlay = document.getElementById('loading-overlay');
+  if (overlay) overlay.remove();
+}
+
 async function apiCall(endpoint, method = 'GET', body = null) {
   const options = {
     method,
@@ -141,6 +163,10 @@ async function handleRegister(e) {
     return;
   }
 
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  submitBtn.classList.add('loading');
+  submitBtn.disabled = true;
+
   try {
     const data = await apiCall('/api/auth/register', 'POST', { email, password });
     
@@ -164,6 +190,9 @@ async function handleRegister(e) {
   } catch (err) {
     console.error('Registration error:', err);
     showError('register-error', err.message || 'Registration failed. Please try again.');
+  } finally {
+    submitBtn.classList.remove('loading');
+    submitBtn.disabled = false;
   }
 }
 
@@ -177,6 +206,10 @@ async function handleLogin(e) {
     showError('login-error', 'Please enter both email and password');
     return;
   }
+
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  submitBtn.classList.add('loading');
+  submitBtn.disabled = true;
 
   try {
     const data = await apiCall('/api/auth/login', 'POST', { email, password });
@@ -203,6 +236,9 @@ async function handleLogin(e) {
   } catch (err) {
     console.error('Login error:', err);
     showError('login-error', err.message || 'Login failed. Please try again.');
+  } finally {
+    submitBtn.classList.remove('loading');
+    submitBtn.disabled = false;
   }
 }
 
@@ -216,7 +252,8 @@ function handleLogout() {
   document.getElementById('logout-btn').style.display = 'none';
   document.getElementById('login-form').reset();
   
-  showScreen('login-screen');
+  showScreen('landing-screen');
+  document.getElementById('back-to-dashboard-btn').style.display = 'none';
 }
 
 function checkAuth() {
@@ -241,6 +278,7 @@ function checkAuth() {
     if (loadExamState()) {
       initializeExam();
       showScreen('exam-screen');
+      document.getElementById('back-to-dashboard-btn').style.display = 'inline-block';
       startTimer();
       
       // Show notification
@@ -251,14 +289,17 @@ function checkAuth() {
       setTimeout(() => notification.remove(), 3000);
     } else {
       showScreen('dashboard-screen');
+      document.getElementById('back-to-dashboard-btn').style.display = 'none';
     }
   } else {
-    showScreen('login-screen');
+    showScreen('landing-screen');
+    document.getElementById('back-to-dashboard-btn').style.display = 'none';
   }
 }
 
 // Exam Functions
 async function startExam(isRetakeMissed = false) {
+  showLoading('Starting exam...');
   try {
     const data = await apiCall(
       isRetakeMissed ? '/api/exams/retake-missed' : '/api/exams/start',
@@ -275,10 +316,13 @@ async function startExam(isRetakeMissed = false) {
     
     saveExamState(); // Save initial state
     initializeExam();
+    hideLoading();
     showScreen('exam-screen');
+    document.getElementById('back-to-dashboard-btn').style.display = 'inline-block';
     startTimer();
   } catch (err) {
-    alert('Error starting exam: ' + err.message);
+    hideLoading();
+    showError('dashboard-error', 'Error starting exam: ' + err.message);
   }
 }
 
@@ -412,7 +456,12 @@ function renderMultiSelectPBQ(pbqData, userAnswer, questionNum) {
   
   container.innerHTML = `
     <div class="pbq-container pbq-multi-select">
+      <div class="pbq-header">
+        <span class="pbq-badge">Performance-Based Question</span>
+      </div>
       <p class="pbq-prompt">${pbqData.prompt || 'Select all that apply:'}</p>
+      <p class="pbq-helper-text">💡 Select all that apply - multiple answers are correct</p>
+      <h4 class="pbq-section-title">Available Options</h4>
       <div class="pbq-options" id="pbq-options"></div>
     </div>
   `;
@@ -461,8 +510,12 @@ function renderOrderingPBQ(pbqData, userAnswer, questionNum) {
   
   container.innerHTML = `
     <div class="pbq-container pbq-ordering">
-      <p class="pbq-prompt">${pbqData.prompt || 'Drag items to reorder them:'}</p>
-      <p class="pbq-instruction">Drag items to reorder (top = first)</p>
+      <div class="pbq-header">
+        <span class="pbq-badge">Performance-Based Question</span>
+      </div>
+      <p class="pbq-prompt">${pbqData.prompt || 'Arrange items in the correct order:'}</p>
+      <p class="pbq-helper-text">💡 Drag and drop to arrange items in correct order (top = first)</p>
+      <h4 class="pbq-section-title">Your Ordering</h4>
       <div class="pbq-ordering-list" id="pbq-ordering-list"></div>
     </div>
   `;
@@ -493,7 +546,11 @@ function renderMatchingPBQ(pbqData, userAnswer, questionNum) {
   
   container.innerHTML = `
     <div class="pbq-container pbq-matching">
+      <div class="pbq-header">
+        <span class="pbq-badge">Performance-Based Question</span>
+      </div>
       <p class="pbq-prompt">${pbqData.prompt || 'Match items on the left with items on the right:'}</p>
+      <p class="pbq-helper-text">💡 Match each item on the left with the correct item on the right</p>
       <div class="pbq-matching-grid" id="pbq-matching-grid"></div>
     </div>
   `;
@@ -619,6 +676,16 @@ function handlePrevious() {
 }
 
 function handleNext() {
+  const questionNum = state.currentQuestionIndex + 1;
+  
+  // Warn if question is unanswered
+  if (!state.answers[questionNum] && state.mode === 'exam') {
+    const confirmed = confirm('You haven\'t answered this question yet. Do you want to proceed anyway?');
+    if (!confirmed) {
+      return;
+    }
+  }
+  
   // In study mode with immediate feedback, check if answer was submitted
   if (state.mode === 'study' && state.immediateFeedback && state.currentFeedback) {
     // Clear feedback for next question
@@ -679,19 +746,12 @@ async function submitExam() {
     clearInterval(state.timerInterval);
   }
   
-  const answeredCount = Object.keys(state.answers).length;
+  const submitBtn = document.getElementById('submit-exam-btn');
+  submitBtn.classList.add('loading');
+  submitBtn.disabled = true;
+  document.getElementById('back-to-dashboard-btn').style.display = 'none';
   
-  if (answeredCount < state.currentExam.questions.length) {
-    const confirmed = confirm(
-      `You have only answered ${answeredCount} out of 90 questions. ` +
-      `Are you sure you want to submit?`
-    );
-    if (!confirmed) {
-      startTimer(); // Resume timer if they cancel
-      return;
-    }
-  }
-  
+  showLoading('Submitting exam...');
   const timeUsed = Math.floor((Date.now() - state.examStartTime) / 1000);
   
   try {
@@ -707,10 +767,15 @@ async function submitExam() {
     
     clearExamState(); // Clear saved state after successful submit
     document.getElementById('timer-bar').style.display = 'none';
+    hideLoading();
     displayResults(results);
     showScreen('results-screen');
   } catch (err) {
-    alert('Error submitting exam: ' + err.message);
+    hideLoading();
+    submitBtn.classList.remove('loading');
+    submitBtn.disabled = false;
+    showError('exam-error', 'Error submitting exam: ' + err.message);
+    startTimer(); // Resume timer on error
   }
 }
 
@@ -1163,10 +1228,41 @@ function formatCorrectAnswer(answer, question) {
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
+  // Landing page event listeners
+  document.getElementById('landing-start-btn').addEventListener('click', () => {
+    showScreen('login-screen');
+  });
+  
+  document.getElementById('landing-login-btn').addEventListener('click', () => {
+    showScreen('login-screen');
+  });
+  
   // Auth event listeners
   document.getElementById('login-form').addEventListener('submit', handleLogin);
   document.getElementById('register-form').addEventListener('submit', handleRegister);
   document.getElementById('logout-btn').addEventListener('click', handleLogout);
+  
+  // Back to Dashboard button
+  document.getElementById('back-to-dashboard-btn').addEventListener('click', () => {
+    if (confirm('Are you sure you want to go back to dashboard? Your current progress will be saved.')) {
+      // Stop timer if running
+      if (state.timerInterval) {
+        clearInterval(state.timerInterval);
+        state.timerInterval = null;
+      }
+      // Save and clear exam state
+      clearExamState();
+      // Clear current exam/study state
+      state.currentExam = null;
+      state.currentQuestionIndex = 0;
+      state.answers = {};
+      state.markedForReview = new Set();
+      // Show dashboard
+      showScreen('dashboard-screen');
+      document.getElementById('timer-bar').style.display = 'none';
+      document.getElementById('back-to-dashboard-btn').style.display = 'none';
+    }
+  });
   
   document.getElementById('show-register').addEventListener('click', (e) => {
     e.preventDefault();
@@ -1199,7 +1295,12 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('next-btn').addEventListener('click', handleNext);
   document.getElementById('mark-review-btn').addEventListener('click', handleMarkReview);
   document.getElementById('clear-answer-btn').addEventListener('click', handleClearAnswer);
-  document.getElementById('submit-exam-btn').addEventListener('click', submitExam);
+  document.getElementById('submit-exam-btn').addEventListener('click', () => {
+    if (state.timerInterval) {
+      clearInterval(state.timerInterval);
+    }
+    openSubmitModal();
+  });
   document.getElementById('exit-study-btn').addEventListener('click', finishStudySession);
   document.getElementById('finish-study-btn').addEventListener('click', finishStudySession);
   
@@ -1225,6 +1326,22 @@ document.addEventListener('DOMContentLoaded', () => {
     applyTheme(state.theme); // Apply saved theme
   }
   
+  // Feedback modal
+  document.getElementById('feedback-btn').addEventListener('click', openFeedbackModal);
+  document.querySelector('#feedback-modal .modal-close').addEventListener('click', closeFeedbackModal);
+  document.getElementById('feedback-cancel').addEventListener('click', closeFeedbackModal);
+  document.getElementById('feedback-submit').addEventListener('click', submitFeedback);
+  
+  // Character counter for feedback
+  const feedbackText = document.getElementById('feedback-text');
+  if (feedbackText) {
+    feedbackText.addEventListener('input', updateCharCount);
+  }
+  
+  // Submit confirmation modal
+  document.getElementById('submit-cancel').addEventListener('click', closeSubmitModal);
+  document.getElementById('submit-confirm').addEventListener('click', confirmSubmit);
+  
   // Check authentication on load
   checkAuth();
 });
@@ -1243,4 +1360,88 @@ function applyTheme(theme) {
     themeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
     themeToggle.title = theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
   }
+}
+// Feedback system
+function openFeedbackModal() {
+  if (!state.user) {
+    alert('Please log in to submit feedback');
+    return;
+  }
+  document.getElementById('feedback-modal').classList.add('active');
+  document.getElementById('feedback-text').focus();
+  updateCharCount(); // Initialize counter
+}
+
+function closeFeedbackModal() {
+  document.getElementById('feedback-modal').classList.remove('active');
+  document.getElementById('feedback-text').value = '';
+  document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
+  document.getElementById('feedback-error').style.display = 'none';
+  document.getElementById('feedback-success').style.display = 'none';
+  updateCharCount();
+}
+
+function updateCharCount() {
+  const textarea = document.getElementById('feedback-text');
+  const counter = document.getElementById('char-count');
+  if (textarea && counter) {
+    counter.textContent = textarea.value.length;
+  }
+}
+
+async function submitFeedback() {
+  const message = document.getElementById('feedback-text').value.trim();
+  const ratingInput = document.querySelector('input[name="rating"]:checked');
+  const rating = ratingInput ? ratingInput.value : null;
+  
+  if (!message) {
+    showError('feedback-error', 'Please enter your feedback');
+    return;
+  }
+  
+  const submitBtn = document.getElementById('feedback-submit');
+  submitBtn.classList.add('loading');
+  submitBtn.disabled = true;
+  
+  try {
+    await apiCall('/api/feedback', 'POST', { message, rating });
+    showSuccess('feedback-success', 'Thank you for your feedback!');
+    setTimeout(() => {
+      closeFeedbackModal();
+    }, 1500);
+  } catch (err) {
+    showError('feedback-error', err.message || 'Failed to submit feedback');
+  } finally {
+    submitBtn.classList.remove('loading');
+    submitBtn.disabled = false;
+  }
+}
+
+// Submit confirmation modal
+function openSubmitModal() {
+  const answeredCount = Object.keys(state.answers).length;
+  const unansweredCount = state.currentExam.questions.length - answeredCount;
+  const minutes = Math.floor(state.timeRemaining / 60);
+  const seconds = state.timeRemaining % 60;
+  
+  let info = `<p><strong>Time remaining:</strong> ${minutes}:${seconds.toString().padStart(2, '0')}</p>`;
+  info += `<p><strong>Answered:</strong> ${answeredCount} / ${state.currentExam.questions.length}</p>`;
+  
+  if (unansweredCount > 0) {
+    info += `<p class="warning-text" style="color: var(--accent-danger); font-weight: 600;"><strong>⚠️ Unanswered questions: ${unansweredCount}</strong></p>`;
+  }
+  
+  info += `<p style="margin-top: 1rem;">Are you sure you want to submit?</p>`;
+  
+  document.getElementById('submit-modal-info').innerHTML = info;
+  document.getElementById('submit-modal').classList.add('active');
+}
+
+function closeSubmitModal() {
+  document.getElementById('submit-modal').classList.remove('active');
+}
+
+async function confirmSubmit() {
+  closeSubmitModal();
+  await submitExam();
 }

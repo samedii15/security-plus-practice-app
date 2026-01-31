@@ -37,6 +37,9 @@ process.on("uncaughtException", (err) => {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy when behind Fly.io or other reverse proxies
+app.set('trust proxy', 1);
+
 // Helper: Ensure consistent JSON storage
 function toJsonString(value) {
   if (value === null || value === undefined) return null;
@@ -980,6 +983,126 @@ app.delete('/api/admin/attempts/:id', verifyToken, verifyAdmin, async (req, res)
   }
 });
 
+// Rate limiter for feedback (max 3 submissions per 15 minutes per user)
+const feedbackLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 3,
+  message: { error: 'Too many feedback submissions. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req, res) => {
+    // Rate limit by user ID only (authentication required anyway)
+    return `feedback-${req.user?.id || 'anonymous'}`;
+  }
+});
+
+// Feedback endpoints
+app.post('/api/feedback', verifyToken, feedbackLimiter, async (req, res) => {
+  try {
+    const { message, rating } = req.body;
+    
+    // Reject empty or whitespace-only messages
+    if (!message || message.trim().length === 0) {
+      return res.status(400).json({ error: 'Feedback message cannot be empty' });
+    }
+    
+    // Limit to 1000 characters
+    if (message.length > 1000) {
+      return res.status(400).json({ error: 'Feedback message is too long (max 1000 characters)' });
+    }
+    
+    // Check for recent submissions (prevent spam)
+    const recentFeedback = await get(
+      'SELECT created_at FROM feedback WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
+      [req.user.id]
+    );
+    
+    if (recentFeedback) {
+      const lastSubmit = new Date(recentFeedback.created_at);
+      const now = new Date();
+      const diffMinutes = (now - lastSubmit) / (1000 * 60);
+      
+      if (diffMinutes < 5) {
+        return res.status(429).json({ 
+          error: `Please wait ${Math.ceil(5 - diffMinutes)} more minute(s) before submitting again` 
+        });
+      }
+    }
+    
+    await run(
+      'INSERT INTO feedback (user_id, message, rating, is_read, created_at) VALUES (?, ?, ?, 0, datetime("now"))',
+      [req.user.id, message.trim(), rating || null]
+    );
+    
+    res.status(201).json({ message: 'Feedback submitted successfully' });
+  } catch (err) {
+    console.error('Error submitting feedback:', err);
+    res.status(500).json({ error: 'Failed to submit feedback' });
+  }
+});
+
+app.get('/api/feedback', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const feedback = await all(`
+      SELECT 
+        f.id,
+        f.message,
+        f.rating,
+        f.is_read,
+        f.created_at,
+        u.email as user_email
+      FROM feedback f
+      LEFT JOIN users u ON f.user_id = u.id
+      ORDER BY f.is_read ASC, f.created_at DESC
+    `);
+    
+    res.json(feedback);
+  } catch (err) {
+    console.error('Error fetching feedback:', err);
+    res.status(500).json({ error: 'Failed to fetch feedback' });
+  }
+});
+
+// Mark feedback as read (admin only)
+app.patch('/api/feedback/:id/read', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const feedbackId = parseInt(req.params.id);
+    const { is_read } = req.body;
+    
+    if (isNaN(feedbackId)) {
+      return res.status(400).json({ error: 'Invalid feedback ID' });
+    }
+    
+    await run(
+      'UPDATE feedback SET is_read = ? WHERE id = ?',
+      [is_read ? 1 : 0, feedbackId]
+    );
+    
+    res.json({ message: 'Feedback status updated' });
+  } catch (err) {
+    console.error('Error updating feedback:', err);
+    res.status(500).json({ error: 'Failed to update feedback' });
+  }
+});
+
+// Delete feedback (admin only)
+app.delete('/api/feedback/:id', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const feedbackId = parseInt(req.params.id);
+    
+    if (isNaN(feedbackId)) {
+      return res.status(400).json({ error: 'Invalid feedback ID' });
+    }
+    
+    await run('DELETE FROM feedback WHERE id = ?', [feedbackId]);
+    
+    res.json({ message: 'Feedback deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting feedback:', err);
+    res.status(500).json({ error: 'Failed to delete feedback' });
+  }
+});
+
 // Serve frontend for all other routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -996,6 +1119,6 @@ app.use((err, req, res, next) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`CompTIA Security+ Exam Server running on http://localhost:${PORT}`);
+  console.log(`CyberAcademy Server running on http://localhost:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });

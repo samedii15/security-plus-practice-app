@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CompTIA Security+ Practice Exam</title>
+    <title>CyberAcademy - CompTIA Security+ Practice Exams</title>
     <link rel="stylesheet" href="styles.css">
     <script type="module" src="pbq.js"></script>
 </head>
@@ -11,9 +11,10 @@
     <!-- Header -->
     <header id="header">
         <div class="header-content">
-            <h1>CompTIA Security+ Practice Exam</h1>
+            <h1>CyberAcademy</h1>
             <div id="header-info">
                 <button id="theme-toggle" class="theme-toggle" title="Toggle theme">🌙</button>
+                <button id="back-to-dashboard-btn" class="btn btn-secondary" style="display: none;">← Dashboard</button>
                 <span id="user-email"></span>
                 <button id="logout-btn" class="btn btn-secondary" style="display: none;">Logout</button>
             </div>
@@ -27,8 +28,40 @@
     </header>
 
     <main id="main-content">
+        <!-- Landing Screen -->
+        <div id="landing-screen" class="screen active">
+            <div class="landing-container">
+                <div class="landing-hero">
+                    <h1 class="landing-title">CyberAcademy</h1>
+                    <p class="landing-subtitle">CompTIA Security+ Practice Exams with Realistic PBQs</p>
+                    <p class="landing-description">Prepare for your CompTIA Security+ certification with full-length practice exams that simulate the real test experience.</p>
+                    <div class="landing-actions">
+                        <button id="landing-start-btn" class="btn btn-primary btn-large">Start Practice Exam</button>
+                        <button id="landing-login-btn" class="btn btn-secondary btn-large">Login / Register</button>
+                    </div>
+                </div>
+                <div class="landing-features">
+                    <div class="feature-card">
+                        <div class="feature-icon">📝</div>
+                        <h3>Full-Length Exams</h3>
+                        <p>90 questions in 90 minutes</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🎯</div>
+                        <h3>Realistic PBQs</h3>
+                        <p>Performance-based questions just like the real exam</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <h3>Detailed Analytics</h3>
+                        <p>Track your progress and identify weak areas</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Login Screen -->
-        <div id="login-screen" class="screen active">
+        <div id="login-screen" class="screen">
             <div class="auth-container">
                 <h2>Login</h2>
                 <form id="login-form">
@@ -79,7 +112,8 @@
         <!-- Dashboard Screen -->
         <div id="dashboard-screen" class="screen">
             <div class="dashboard-container">
-                <h2>Welcome to CompTIA Security+ Practice Exam</h2>
+                <h2>Welcome to CyberAcademy</h2>
+                <div id="dashboard-error" class="error-message"></div>
                 
                 <!-- Mode Selection -->
                 <div class="mode-selector">
@@ -263,8 +297,55 @@
     </main>
 
     <footer>
-        <p>&copy; 2026 CompTIA Security+ Practice Exam | For educational purposes only</p>
+        <p>&copy; 2026 CyberAcademy | For educational purposes only</p>
+        <button id="feedback-btn" class="btn-feedback" aria-label="Give Feedback">💬 Feedback</button>
     </footer>
+
+    <!-- Feedback Modal -->
+    <div id="feedback-modal" class="modal" role="dialog" aria-labelledby="feedback-modal-title">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="feedback-modal-title">Send Feedback</h3>
+                <button class="modal-close" aria-label="Close feedback modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Help us improve CyberAcademy. What would you like to see changed?</p>
+                <textarea id="feedback-text" placeholder="Share your thoughts..." rows="5" maxlength="1000" aria-label="Feedback message"></textarea>
+                <div class="char-counter">
+                    <span id="char-count">0</span> / 1000 characters
+                </div>
+                <div class="feedback-rating">
+                    <label>Is the app useful?</label>
+                    <div class="rating-options">
+                        <label><input type="radio" name="rating" value="yes"> Yes</label>
+                        <label><input type="radio" name="rating" value="no"> No</label>
+                    </div>
+                </div>
+                <div id="feedback-error" class="error-message"></div>
+                <div id="feedback-success" class="success-message"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="feedback-cancel" class="btn btn-secondary">Cancel</button>
+                <button id="feedback-submit" class="btn btn-primary">Submit Feedback</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit Confirmation Modal -->
+    <div id="submit-modal" class="modal" role="dialog" aria-labelledby="submit-modal-title">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="submit-modal-title">Submit Exam?</h3>
+            </div>
+            <div class="modal-body">
+                <div id="submit-modal-info"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="submit-cancel" class="btn btn-secondary">Cancel</button>
+                <button id="submit-confirm" class="btn btn-primary">Submit Now</button>
+            </div>
+        </div>
+    </div>
 
     <script src="app.js"></script>
 </body>

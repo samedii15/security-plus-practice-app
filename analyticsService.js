@@ -32,10 +32,10 @@ async function getUserAnalytics(userId) {
         db.all(
           `SELECT 
             q.domain,
-            COUNT(id) as total_questions,
-            SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct_answers,
-            ROUND(AVG(CASE WHEN is_correct = 1 THEN 100.0 ELSE 0.0 END), 1) as accuracy,
-            ROUND(AVG(CASE WHEN is_correct = 0 THEN 100.0 ELSE 0.0 END), 1) as error_rate
+            COUNT(subq.id) as total_questions,
+            SUM(CASE WHEN subq.is_correct = 1 THEN 1 ELSE 0 END) as correct_answers,
+            ROUND(AVG(CASE WHEN subq.is_correct = 1 THEN 100.0 ELSE 0.0 END), 1) as accuracy,
+            ROUND(AVG(CASE WHEN subq.is_correct = 0 THEN 100.0 ELSE 0.0 END), 1) as error_rate
            FROM (
              SELECT eq.id, eq.is_correct, q.domain
              FROM exam_questions eq
@@ -48,7 +48,7 @@ async function getUserAnalytics(userId) {
              JOIN exam_attempts ea ON eaa.attempt_id = ea.id
              JOIN questions q ON eaa.question_id = q.id
              WHERE ea.user_id = ? AND ea.submitted_at IS NOT NULL
-           ) JOIN questions q ON domain = q.domain
+           ) subq JOIN questions q ON subq.domain = q.domain
            GROUP BY q.domain
            ORDER BY accuracy ASC, total_questions DESC`,
           [userId, userId],
@@ -61,10 +61,10 @@ async function getUserAnalytics(userId) {
             // Get difficulty-level performance from BOTH tables
             db.all(
               `SELECT 
-                difficulty,
-                COUNT(id) as total_questions,
-                SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct_answers,
-                ROUND(AVG(CASE WHEN is_correct = 1 THEN 100.0 ELSE 0.0 END), 1) as accuracy
+                subq.difficulty,
+                COUNT(subq.id) as total_questions,
+                SUM(CASE WHEN subq.is_correct = 1 THEN 1 ELSE 0 END) as correct_answers,
+                ROUND(AVG(CASE WHEN subq.is_correct = 1 THEN 100.0 ELSE 0.0 END), 1) as accuracy
                FROM (
                  SELECT eq.id, eq.is_correct, q.difficulty
                  FROM exam_questions eq
@@ -77,8 +77,8 @@ async function getUserAnalytics(userId) {
                  JOIN exam_attempts ea ON eaa.attempt_id = ea.id
                  JOIN questions q ON eaa.question_id = q.id
                  WHERE ea.user_id = ? AND ea.submitted_at IS NOT NULL
-               )
-               GROUP BY difficulty
+               ) subq
+               GROUP BY subq.difficulty
                ORDER BY accuracy ASC`,
               [userId, userId],
               (err, difficultyStats) => {
@@ -93,7 +93,7 @@ async function getUserAnalytics(userId) {
                     q.id,
                     q.question,
                     q.domain,
-                    is_correct
+                    subq.is_correct
                    FROM (
                      SELECT eq.question_id, eq.is_correct
                      FROM exam_questions eq
@@ -104,7 +104,7 @@ async function getUserAnalytics(userId) {
                      FROM exam_attempt_answers eaa
                      JOIN exam_attempts ea ON eaa.attempt_id = ea.id
                      WHERE ea.user_id = ? AND ea.submitted_at IS NOT NULL
-                   ) JOIN questions q ON question_id = q.id`,
+                   ) subq JOIN questions q ON subq.question_id = q.id`,
                   [userId, userId],
                   (err, allQuestions) => {
                     if (err) {
@@ -117,7 +117,7 @@ async function getUserAnalytics(userId) {
 
                     // Get recent performance trend from BOTH tables
                     db.all(
-                      `SELECT id, submitted_at, score, questions_answered, correct_count
+                      `SELECT subq.id, subq.submitted_at, subq.score, subq.questions_answered, subq.correct_count
                        FROM (
                          SELECT 
                            e.id,
@@ -127,7 +127,7 @@ async function getUserAnalytics(userId) {
                            SUM(CASE WHEN eq.is_correct = 1 THEN 1 ELSE 0 END) as correct_count
                          FROM exams e
                          LEFT JOIN exam_questions eq ON e.id = eq.exam_id AND eq.user_answer IS NOT NULL
-                         WHERE e.user_id = ? AND e.submitted_at IS NOT NULL AND e.deleted_at IS NULL
+                         WHERE e.user_id = ? AND e.submitted_at IS NOT NULL
                          GROUP BY e.id
                          UNION ALL
                          SELECT 
@@ -138,8 +138,8 @@ async function getUserAnalytics(userId) {
                            ea.correct_count
                          FROM exam_attempts ea
                          WHERE ea.user_id = ? AND ea.submitted_at IS NOT NULL AND ea.deleted_at IS NULL
-                       )
-                       ORDER BY submitted_at DESC
+                       ) subq
+                       ORDER BY subq.submitted_at DESC
                        LIMIT 10`,
                       [userId, userId],
                       (err, recentExams) => {
