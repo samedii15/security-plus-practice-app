@@ -47,9 +47,6 @@ async function initDatabase() {
     console.log('Database schema initialized successfully');
   }
 }
-    console.log('Database schema initialized successfully');
-  }
-}
 
 // Promise wrappers for async/await usage
 export function all(sql, params = []) {
