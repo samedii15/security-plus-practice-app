@@ -1,5 +1,6 @@
 {
   "type": "module",
+  "private": false,
   "name": "comptia-security-plus-exam",
   "version": "1.0.0",
   "description": "CompTIA Security+ Practice Exam Web Application",
