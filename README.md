@@ -1,18 +1,21 @@
 # CyberAcademy - CompTIA Security+ Practice Platform
 
+<div align="center">
+
+## 🚀 **[Try CyberAcademy Live →](https://cyberacademy.fly.dev/)**
+
+### 🎯 **Instant Demo Access**
+**Demo Account**: `demo@test.com` • **Password**: `password123`
+
+🎮 **Try a full 90-question practice exam** • 📊 **View detailed analytics** • 💯 **No signup required for demo**
+
+---
+
 ![License](https://img.shields.io/github/license/samedii15/security-plus-practice-app)
 ![GitHub last commit](https://img.shields.io/github/last-commit/samedii15/security-plus-practice-app)
 ![GitHub issues](https://img.shields.io/github/issues/samedii15/security-plus-practice-app)
 
-## 🚀 **[Try CyberAcademy Live](https://cyberacademy.fly.dev/)**
-
-### 🎯 **Quick Demo Access**
-- **Create Account**: Register with any email (no verification required)
-- **Demo Credentials**: `demo@test.com` / `password123` for instant access
-- **Sample Exam**: Take a full 90-question practice exam immediately
-- **Analytics**: View detailed performance analytics after completing an exam
-
----
+</div>
 
 A production-ready, full-stack web application for CompTIA Security+ exam practice with comprehensive security features, user management, analytics, and performance-based questions (PBQs).
 
