@@ -50,9 +50,12 @@ async function register(email, password, req = null) {
               logAudit(EventTypes.REGISTER, userId, { email: email.toLowerCase() }, req);
 
               // Generate JWT token for auto-login after registration
+              if (!process.env.JWT_SECRET) {
+                throw new Error('JWT_SECRET environment variable is not set');
+              }
               const token = jwt.sign(
                 { id: userId, email: email.toLowerCase(), role: role },
-                process.env.JWT_SECRET || 'default-secret-change-in-production',
+                process.env.JWT_SECRET,
                 { expiresIn: '24h' }
               );
 
@@ -125,9 +128,12 @@ async function login(email, password, req = null) {
           });
 
           // Generate JWT token with role
+          if (!process.env.JWT_SECRET) {
+            throw new Error('JWT_SECRET environment variable is not set');
+          }
           const token = jwt.sign(
             { id: user.id, email: user.email, role: user.role },
-            process.env.JWT_SECRET || 'default-secret-change-in-production',
+            process.env.JWT_SECRET,
             { expiresIn: '24h' }
           );
 
@@ -154,9 +160,12 @@ function verifyToken(req, res, next) {
   }
 
   try {
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET environment variable is not set');
+    }
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET || 'default-secret-change-in-production'
+      process.env.JWT_SECRET
     );
     req.user = decoded;
     next();

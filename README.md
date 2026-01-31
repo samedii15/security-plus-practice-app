@@ -7,6 +7,8 @@
 ### 🎯 **Instant Demo Access**
 **Demo Account**: `demo@test.com` • **Password**: `password123`
 
+> ⚠️ **Security Note**: This is a public demo account intended for testing purposes only. Do not use this account for any sensitive data. Create your own account for personal use.
+
 🎮 **Try a full 90-question practice exam** • 📊 **View detailed analytics** • 💯 **No signup required for demo**
 
 ---
