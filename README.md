@@ -1,4 +1,10 @@
-# CompTIA Security+ Practice Exam Web Application
+# CyberAcademy - CompTIA Security+ Practice Platform
+
+![License](https://img.shields.io/github/license/samedii15/security-plus-practice-app)
+![GitHub last commit](https://img.shields.io/github/last-commit/samedii15/security-plus-practice-app)
+![GitHub issues](https://img.shields.io/github/issues/samedii15/security-plus-practice-app)
+
+**🚀 [Live Demo](https://cyberacademy.fly.dev/)**
 
 A production-ready, full-stack web application for CompTIA Security+ exam practice with comprehensive security features, user management, analytics, and performance-based questions (PBQs).
 
@@ -98,20 +104,31 @@ This will install:
 
 ### 3. Set Up Environment Variables
 
-Create a `.env` file in the root directory:
+Create a `.env` file from the example template:
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` and set your JWT secret:
+**Required Environment Variables:**
 ```env
-JWT_SECRET=your-secure-random-secret-key-here
+# JWT Secret for authentication (CRITICAL: Change in production!)
+JWT_SECRET=your_very_secure_secret_key_here
+
+# Server Configuration
 PORT=3000
 NODE_ENV=development
+
+# Database Path (optional)
+DATABASE_PATH=./database/comptia.db
 ```
 
-**Important**: Change `JWT_SECRET` to a strong random string in production!
+**🔐 Generate a Secure JWT Secret:**
+```bash
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+```
+
+**⚠️ Security Note:** The JWT_SECRET must be changed to a cryptographically secure random string in production!
 
 ### 4. Start the Server
 
@@ -471,6 +488,8 @@ Migrations are located in `migrations/` directory and run automatically on first
 
 ### Running Tests
 
+![Tests](https://img.shields.io/badge/tests-17%20passing-brightgreen)
+
 ```bash
 # Run integration tests (requires server running)
 npm test
@@ -479,13 +498,16 @@ npm test
 npm run test:pbq
 ```
 
-The integration test suite includes 17 comprehensive tests covering:
-- Full authentication lifecycle (register → login → JWT usage)
-- Exam creation and submission
-- Database row verification
-- Ownership and access control
-- Input validation
-- GDPR data export
+**Test Coverage:** Our comprehensive test suite includes 17 tests ensuring:
+- ✅ **Authentication Security**: Complete registration → login → JWT lifecycle
+- ✅ **Exam Functionality**: Question delivery, scoring, and submission
+- ✅ **Data Integrity**: Database operations and row verification
+- ✅ **Access Control**: User ownership and permission validation
+- ✅ **Input Validation**: Malformed data handling and security
+- ✅ **GDPR Compliance**: Complete data export functionality
+- ✅ **PBQ Scoring**: Complex question type scoring algorithms
+
+Passing tests guarantee platform reliability and security.
 
 ### Code Quality
 
