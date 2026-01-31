@@ -13,6 +13,16 @@ import { startExam, submitExam, getExamHistory, getExamReview, getDomainStats } 
 import { getUserAnalytics, getDomainPerformance, getProgressOverTime } from "./analyticsService.js";
 import { startStudySession, submitStudyAnswer, getAvailableDomains, getStudyHistory } from "./studyService.js";
 import { scheduleCleanup, runAllCleanupTasks } from "./dataCleanup.js";
+import {
+  validateRegistration,
+  validateLogin,
+  validateStartExam,
+  validateSubmitExam,
+  validateStartStudy,
+  validateDeleteUser,
+  validateIdParam,
+  validationErrorHandler
+} from "./validation.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -183,7 +193,7 @@ app.get('/api/health', async (req, res) => {
 });
 
 // Authentication endpoints
-app.post('/api/auth/register', authLimiter, async (req, res) => {
+app.post('/api/auth/register', authLimiter, validateRegistration, async (req, res) => {
   try {
     const { email, password } = req.body;
     const result = await register(email, password, req);
@@ -193,7 +203,7 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
   }
 });
 
-app.post('/api/auth/login', authLimiter, async (req, res) => {
+app.post('/api/auth/login', authLimiter, validateLogin, async (req, res) => {
   try {
     const { email, password } = req.body;
     const result = await login(email, password, req);
@@ -204,7 +214,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
 });
 
 // Exam endpoints (protected)
-app.post('/api/exams/start', verifyToken, async (req, res) => {
+app.post('/api/exams/start', verifyToken, validateStartExam, async (req, res) => {
   try {
     const { isRetakeMissed } = req.body;
     const result = await startExam(req.user.id, isRetakeMissed);
@@ -214,9 +224,9 @@ app.post('/api/exams/start', verifyToken, async (req, res) => {
   }
 });
 
-app.post('/api/exams/:id/submit', verifyToken, async (req, res) => {
+app.post('/api/exams/:id/submit', verifyToken, validateIdParam('id'), validateSubmitExam, async (req, res) => {
   try {
-    const examId = parseInt(req.params.id);
+    const examId = req.params.id; // Already validated and converted to number
     const { answers, timeUsed, attemptId } = req.body;
     const result = await submitExam(examId, req.user.id, answers, timeUsed, attemptId);
     res.json(result);
@@ -311,7 +321,7 @@ app.get('/api/analytics/progress', verifyToken, async (req, res) => {
 // ===== STUDY MODE ENDPOINTS =====
 
 // Start a study session with custom filters
-app.post('/api/study/start', verifyToken, async (req, res) => {
+app.post('/api/study/start', verifyToken, validateStartStudy, async (req, res) => {
   try {
     const result = await startStudySession(req.user.id, req.body);
     res.json(result);
@@ -908,9 +918,9 @@ app.get('/api/admin/users/:id', verifyToken, verifyAdmin, async (req, res) => {
 });
 
 // Soft delete user (admin only)
-app.delete('/api/admin/users/:id', verifyToken, verifyAdmin, async (req, res) => {
+app.delete('/api/admin/users/:id', verifyToken, verifyAdmin, validateIdParam('id'), async (req, res) => {
   try {
-    const userId = parseInt(req.params.id);
+    const userId = req.params.id; // Already validated and converted to number
     
     // Prevent admin from deleting themselves
     if (userId === req.user.id) {
@@ -974,6 +984,9 @@ app.delete('/api/admin/attempts/:id', verifyToken, verifyAdmin, async (req, res)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+// Validation error handling middleware
+app.use(validationErrorHandler);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

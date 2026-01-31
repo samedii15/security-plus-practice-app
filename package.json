@@ -9,7 +9,12 @@
     "dev": "nodemon server.js",
     "test": "node test/integration.test.js",
     "test:pbq": "node test/pbqScoring.test.js",
-    "seed": "node scripts/seed_pbqs.js"
+    "seed": "node scripts/seed_pbqs.js",
+    "migrate": "node migrations/migrate.js up",
+    "migrate:down": "node migrations/migrate.js down",
+    "migrate:status": "node migrations/migrate.js status",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "keywords": [
     "comptia",
@@ -32,6 +37,7 @@
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
+    "eslint": "^9.39.2",
     "nodemon": "^3.0.1"
   }
 }
