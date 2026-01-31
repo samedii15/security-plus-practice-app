@@ -4,7 +4,15 @@
 ![GitHub last commit](https://img.shields.io/github/last-commit/samedii15/security-plus-practice-app)
 ![GitHub issues](https://img.shields.io/github/issues/samedii15/security-plus-practice-app)
 
-**🚀 [Live Demo](https://cyberacademy.fly.dev/)**
+## 🚀 **[Try CyberAcademy Live](https://cyberacademy.fly.dev/)**
+
+### 🎯 **Quick Demo Access**
+- **Create Account**: Register with any email (no verification required)
+- **Demo Credentials**: `demo@test.com` / `password123` for instant access
+- **Sample Exam**: Take a full 90-question practice exam immediately
+- **Analytics**: View detailed performance analytics after completing an exam
+
+---
 
 A production-ready, full-stack web application for CompTIA Security+ exam practice with comprehensive security features, user management, analytics, and performance-based questions (PBQs).
 
@@ -40,7 +48,7 @@ A production-ready, full-stack web application for CompTIA Security+ exam practi
   - Performance by topic (12+ topics)
   - Performance by difficulty level
 - **Weak Area Identification**: Top 5 areas needing improvement
-- **Personalized Recommendations**: AI-driven study suggestions
+- **Personalized Recommendations**: Data-driven study suggestions based on performance
 - **Progress Over Time**: Track improvement across exams
 - **Exam History**: Complete history with detailed reviews
 - **Question Usage Tracking**: Avoid repetition, track missed questions
