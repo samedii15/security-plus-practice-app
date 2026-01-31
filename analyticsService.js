@@ -3,90 +3,150 @@ import { db } from './database/db.js';
 // Get comprehensive learning analytics for a user
 async function getUserAnalytics(userId) {
   return new Promise((resolve, reject) => {
-    // Get overall stats
+    // Get overall stats from BOTH old and new tables for backwards compatibility
     db.get(
       `SELECT 
-        COUNT(DISTINCT eq.exam_id) as total_exams,
-        SUM(CASE WHEN eq.is_correct = 1 THEN 1 ELSE 0 END) as total_correct,
-        COUNT(eq.id) as total_answered,
-        ROUND(AVG(CASE WHEN eq.is_correct = 1 THEN 100.0 ELSE 0.0 END), 1) as overall_accuracy
-       FROM exam_questions eq
-       JOIN exams e ON eq.exam_id = e.id
-       WHERE e.user_id = ? AND e.submitted_at IS NOT NULL AND eq.user_answer IS NOT NULL`,
-      [userId],
+        COUNT(DISTINCT attempt_id) as total_exams,
+        SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as total_correct,
+        COUNT(id) as total_answered,
+        ROUND(AVG(CASE WHEN is_correct = 1 THEN 100.0 ELSE 0.0 END), 1) as overall_accuracy
+       FROM (
+         SELECT eq.id, eq.exam_id as attempt_id, eq.is_correct
+         FROM exam_questions eq
+         JOIN exams e ON eq.exam_id = e.id
+         WHERE e.user_id = ? AND e.submitted_at IS NOT NULL AND eq.user_answer IS NOT NULL
+         UNION ALL
+         SELECT eaa.id, eaa.attempt_id, eaa.is_correct
+         FROM exam_attempt_answers eaa
+         JOIN exam_attempts ea ON eaa.attempt_id = ea.id
+         WHERE ea.user_id = ? AND ea.submitted_at IS NOT NULL
+       )`,
+      [userId, userId],
       (err, overallStats) => {
-        if (err) return reject({ status: 500, message: 'Database error' });
+        if (err) {
+          console.error('Analytics error:', err);
+          return reject({ status: 500, message: 'Database error' });
+        }
 
-        // Get domain-level accuracy
+        // Get domain-level accuracy from BOTH tables
         db.all(
           `SELECT 
             q.domain,
-            COUNT(eq.id) as total_questions,
-            SUM(CASE WHEN eq.is_correct = 1 THEN 1 ELSE 0 END) as correct_answers,
-            ROUND(AVG(CASE WHEN eq.is_correct = 1 THEN 100.0 ELSE 0.0 END), 1) as accuracy,
-            ROUND(AVG(CASE WHEN eq.is_correct = 0 THEN 100.0 ELSE 0.0 END), 1) as error_rate
-           FROM exam_questions eq
-           JOIN exams e ON eq.exam_id = e.id
-           JOIN questions q ON eq.question_id = q.id
-           WHERE e.user_id = ? AND e.submitted_at IS NOT NULL AND eq.user_answer IS NOT NULL
+            COUNT(id) as total_questions,
+            SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct_answers,
+            ROUND(AVG(CASE WHEN is_correct = 1 THEN 100.0 ELSE 0.0 END), 1) as accuracy,
+            ROUND(AVG(CASE WHEN is_correct = 0 THEN 100.0 ELSE 0.0 END), 1) as error_rate
+           FROM (
+             SELECT eq.id, eq.is_correct, q.domain
+             FROM exam_questions eq
+             JOIN exams e ON eq.exam_id = e.id
+             JOIN questions q ON eq.question_id = q.id
+             WHERE e.user_id = ? AND e.submitted_at IS NOT NULL AND eq.user_answer IS NOT NULL
+             UNION ALL
+             SELECT eaa.id, eaa.is_correct, q.domain
+             FROM exam_attempt_answers eaa
+             JOIN exam_attempts ea ON eaa.attempt_id = ea.id
+             JOIN questions q ON eaa.question_id = q.id
+             WHERE ea.user_id = ? AND ea.submitted_at IS NOT NULL
+           ) JOIN questions q ON domain = q.domain
            GROUP BY q.domain
            ORDER BY accuracy ASC, total_questions DESC`,
-          [userId],
+          [userId, userId],
           (err, domainStats) => {
-            if (err) return reject({ status: 500, message: 'Error fetching domain stats' });
+            if (err) {
+              console.error('Domain stats error:', err);
+              return reject({ status: 500, message: 'Error fetching domain stats' });
+            }
 
-            // Get difficulty-level performance
+            // Get difficulty-level performance from BOTH tables
             db.all(
               `SELECT 
-                q.difficulty,
-                COUNT(eq.id) as total_questions,
-                SUM(CASE WHEN eq.is_correct = 1 THEN 1 ELSE 0 END) as correct_answers,
-                ROUND(AVG(CASE WHEN eq.is_correct = 1 THEN 100.0 ELSE 0.0 END), 1) as accuracy
-               FROM exam_questions eq
-               JOIN exams e ON eq.exam_id = e.id
-               JOIN questions q ON eq.question_id = q.id
-               WHERE e.user_id = ? AND e.submitted_at IS NOT NULL AND eq.user_answer IS NOT NULL
-               GROUP BY q.difficulty
+                difficulty,
+                COUNT(id) as total_questions,
+                SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct_answers,
+                ROUND(AVG(CASE WHEN is_correct = 1 THEN 100.0 ELSE 0.0 END), 1) as accuracy
+               FROM (
+                 SELECT eq.id, eq.is_correct, q.difficulty
+                 FROM exam_questions eq
+                 JOIN exams e ON eq.exam_id = e.id
+                 JOIN questions q ON eq.question_id = q.id
+                 WHERE e.user_id = ? AND e.submitted_at IS NOT NULL AND eq.user_answer IS NOT NULL
+                 UNION ALL
+                 SELECT eaa.id, eaa.is_correct, q.difficulty
+                 FROM exam_attempt_answers eaa
+                 JOIN exam_attempts ea ON eaa.attempt_id = ea.id
+                 JOIN questions q ON eaa.question_id = q.id
+                 WHERE ea.user_id = ? AND ea.submitted_at IS NOT NULL
+               )
+               GROUP BY difficulty
                ORDER BY accuracy ASC`,
-              [userId],
+              [userId, userId],
               (err, difficultyStats) => {
-                if (err) return reject({ status: 500, message: 'Error fetching difficulty stats' });
+                if (err) {
+                  console.error('Difficulty stats error:', err);
+                  return reject({ status: 500, message: 'Error fetching difficulty stats' });
+                }
 
-                // Get topic-level accuracy (extracted from question content keywords)
+                // Get topic-level accuracy from BOTH tables
                 db.all(
                   `SELECT 
                     q.id,
                     q.question,
                     q.domain,
-                    eq.is_correct
-                   FROM exam_questions eq
-                   JOIN exams e ON eq.exam_id = e.id
-                   JOIN questions q ON eq.question_id = q.id
-                   WHERE e.user_id = ? AND e.submitted_at IS NOT NULL AND eq.user_answer IS NOT NULL`,
-                  [userId],
+                    is_correct
+                   FROM (
+                     SELECT eq.question_id, eq.is_correct
+                     FROM exam_questions eq
+                     JOIN exams e ON eq.exam_id = e.id
+                     WHERE e.user_id = ? AND e.submitted_at IS NOT NULL AND eq.user_answer IS NOT NULL
+                     UNION ALL
+                     SELECT eaa.question_id, eaa.is_correct
+                     FROM exam_attempt_answers eaa
+                     JOIN exam_attempts ea ON eaa.attempt_id = ea.id
+                     WHERE ea.user_id = ? AND ea.submitted_at IS NOT NULL
+                   ) JOIN questions q ON question_id = q.id`,
+                  [userId, userId],
                   (err, allQuestions) => {
-                    if (err) return reject({ status: 500, message: 'Error fetching questions' });
+                    if (err) {
+                      console.error('Questions error:', err);
+                      return reject({ status: 500, message: 'Error fetching questions' });
+                    }
 
                     // Extract topics from questions
                     const topicStats = analyzeTopics(allQuestions);
 
-                    // Get recent performance trend
+                    // Get recent performance trend from BOTH tables
                     db.all(
-                      `SELECT 
-                        e.id,
-                        e.submitted_at,
-                        e.score,
-                        COUNT(eq.id) as questions_answered,
-                        SUM(CASE WHEN eq.is_correct = 1 THEN 1 ELSE 0 END) as correct_count
-                       FROM exams e
-                       LEFT JOIN exam_questions eq ON e.id = eq.exam_id AND eq.user_answer IS NOT NULL
-                       WHERE e.user_id = ? AND e.submitted_at IS NOT NULL AND e.deleted_at IS NULL
-                       GROUP BY e.id
-                       ORDER BY e.submitted_at DESC
+                      `SELECT id, submitted_at, score, questions_answered, correct_count
+                       FROM (
+                         SELECT 
+                           e.id,
+                           e.submitted_at,
+                           e.score,
+                           COUNT(eq.id) as questions_answered,
+                           SUM(CASE WHEN eq.is_correct = 1 THEN 1 ELSE 0 END) as correct_count
+                         FROM exams e
+                         LEFT JOIN exam_questions eq ON e.id = eq.exam_id AND eq.user_answer IS NOT NULL
+                         WHERE e.user_id = ? AND e.submitted_at IS NOT NULL AND e.deleted_at IS NULL
+                         GROUP BY e.id
+                         UNION ALL
+                         SELECT 
+                           ea.id,
+                           ea.submitted_at,
+                           ea.score_percent as score,
+                           ea.total_questions as questions_answered,
+                           ea.correct_count
+                         FROM exam_attempts ea
+                         WHERE ea.user_id = ? AND ea.submitted_at IS NOT NULL AND ea.deleted_at IS NULL
+                       )
+                       ORDER BY submitted_at DESC
                        LIMIT 10`,
-                      [userId],
+                      [userId, userId],
                       (err, recentExams) => {
-                        if (err) return reject({ status: 500, message: 'Error fetching recent exams' });
+                        if (err) {
+                          console.error('Recent exams error:', err);
+                          return reject({ status: 500, message: 'Error fetching recent exams' });
+                        }
 
                         // Identify top 5 weakest areas
                         const weakAreas = identifyWeakAreas(domainStats, topicStats);
@@ -371,17 +431,31 @@ async function getDomainPerformance(userId, domain) {
         q.id,
         q.question,
         q.difficulty,
-        eq.user_answer,
-        eq.is_correct,
-        e.submitted_at
-       FROM exam_questions eq
-       JOIN exams e ON eq.exam_id = e.id
-       JOIN questions q ON eq.question_id = q.id
-       WHERE e.user_id = ? AND q.domain = ? AND e.submitted_at IS NOT NULL AND eq.user_answer IS NOT NULL
-       ORDER BY e.submitted_at DESC`,
-      [userId, domain],
+        user_answer,
+        is_correct,
+        submitted_at
+       FROM (
+         SELECT 
+           q.id, q.question, q.difficulty, eq.user_answer, eq.is_correct, e.submitted_at
+         FROM exam_questions eq
+         JOIN exams e ON eq.exam_id = e.id
+         JOIN questions q ON eq.question_id = q.id
+         WHERE e.user_id = ? AND q.domain = ? AND e.submitted_at IS NOT NULL AND eq.user_answer IS NOT NULL
+         UNION ALL
+         SELECT 
+           q.id, q.question, q.difficulty, eaa.user_answer_json as user_answer, eaa.is_correct, ea.submitted_at
+         FROM exam_attempt_answers eaa
+         JOIN exam_attempts ea ON eaa.attempt_id = ea.id
+         JOIN questions q ON eaa.question_id = q.id
+         WHERE ea.user_id = ? AND q.domain = ? AND ea.submitted_at IS NOT NULL
+       ) JOIN questions q ON id = q.id
+       ORDER BY submitted_at DESC`,
+      [userId, domain, userId, domain],
       (err, questions) => {
-        if (err) return reject({ status: 500, message: 'Database error' });
+        if (err) {
+          console.error('Domain performance error:', err);
+          return reject({ status: 500, message: 'Database error' });
+        }
 
         const stats = {
           domain,
@@ -410,19 +484,40 @@ async function getProgressOverTime(userId) {
   return new Promise((resolve, reject) => {
     db.all(
       `SELECT 
-        DATE(e.submitted_at) as exam_date,
-        AVG(e.score) as avg_score,
-        COUNT(e.id) as exam_count,
-        SUM(eq.is_correct) as total_correct,
-        COUNT(eq.id) as total_questions
-       FROM exams e
-       LEFT JOIN exam_questions eq ON e.id = eq.exam_id AND eq.user_answer IS NOT NULL
-       WHERE e.user_id = ? AND e.submitted_at IS NOT NULL AND e.deleted_at IS NULL
-       GROUP BY DATE(e.submitted_at)
+        exam_date,
+        AVG(score) as avg_score,
+        COUNT(id) as exam_count,
+        SUM(correct) as total_correct,
+        SUM(total) as total_questions
+       FROM (
+         SELECT 
+           DATE(e.submitted_at) as exam_date,
+           e.id,
+           e.score,
+           SUM(CASE WHEN eq.is_correct = 1 THEN 1 ELSE 0 END) as correct,
+           COUNT(eq.id) as total
+         FROM exams e
+         LEFT JOIN exam_questions eq ON e.id = eq.exam_id AND eq.user_answer IS NOT NULL
+         WHERE e.user_id = ? AND e.submitted_at IS NOT NULL AND e.deleted_at IS NULL
+         GROUP BY e.id, DATE(e.submitted_at), e.score
+         UNION ALL
+         SELECT 
+           DATE(ea.submitted_at) as exam_date,
+           ea.id,
+           ea.score_percent as score,
+           ea.correct_count as correct,
+           ea.total_questions as total
+         FROM exam_attempts ea
+         WHERE ea.user_id = ? AND ea.submitted_at IS NOT NULL AND ea.deleted_at IS NULL
+       )
+       GROUP BY exam_date
        ORDER BY exam_date ASC`,
-      [userId],
+      [userId, userId],
       (err, rows) => {
-        if (err) return reject({ status: 500, message: 'Database error' });
+        if (err) {
+          console.error('Progress over time error:', err);
+          return reject({ status: 500, message: 'Database error' });
+        }
 
         resolve({
           timeline: rows.map(r => ({
