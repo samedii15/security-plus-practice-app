@@ -461,7 +461,7 @@
 
       // Update bar chart
       const topIps = (data.top_banned_ips || []).slice(0, 10);
-      charts.bar.data.labels = topIps.map(ip => ip.ip_hash.substring(0, 16) + '...');
+      charts.bar.data.labels = topIps.map(ip => ip.ip || ip.ip_hash.substring(0, 16) + '...');
       charts.bar.data.datasets[0].data = topIps.map(ip => ip.ban_count_24h);
       charts.bar.update();
 
@@ -495,7 +495,7 @@
 
         return `
           <tr>
-            <td><code>${ban.ip_hash.substring(0, 24)}...</code></td>
+            <td><code>${ban.ip || ban.ip_hash.substring(0, 24) + '...'}</code></td>
             <td><strong>${ban.ban_count_24h}</strong></td>
             <td>${durationMins} min</td>
             <td>${expiresAt}</td>

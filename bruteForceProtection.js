@@ -1011,11 +1011,12 @@ export function unbanIp(ipHash) {
 }
 
 /**
- * Get top banned IPs (hashed for privacy)
+ * Get top banned IPs (showing real IP addresses for monitoring)
  */
 export async function getTopBannedIps(limit = 10) {
   const bans = Array.from(banManager.bans.entries())
     .map(([ip, ban]) => ({
+      ip: ip,  // Real IP address for admin dashboard
       ip_hash: ban.ip_hash,
       ban_count_24h: ban.banCount24h,
       attempt_count: ban.attemptCount,
