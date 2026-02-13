@@ -147,6 +147,20 @@ async function login(email, password, req = null) {
 
 // Verify JWT token middleware
 function verifyToken(req, res, next) {
+  // Check for admin token first (from admin panel)
+  const adminToken = req.headers['x-admin-token'];
+  if (adminToken) {
+    const envAdminToken = process.env.ADMIN_TOKEN;
+    if (adminToken === envAdminToken) {
+      // Set req.user for admin token users (role: admin)
+      req.user = { id: 'admin', role: 'admin' };
+      return next();
+    } else {
+      return res.status(401).json({ error: 'Invalid admin token' });
+    }
+  }
+
+  // Otherwise check for JWT token (from regular login)
   const token = req.headers.authorization?.split(' ')[1];
 
   if (!token) {
