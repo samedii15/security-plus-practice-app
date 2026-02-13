@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - IP_RATE_WINDOW_MIN=15
+      - IP_RATE_MAX_ATTEMPTS=20
+      - USER_IP_WINDOW_MIN=15
+      - USER_IP_MAX_FAILURES=5
+      # - IP_DENYLIST=1.2.3.4,5.6.7.8
+      # - IP_ALLOWLIST=10.0.0.1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); })"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    # Optional: mount volume for logs
+    # volumes:
+    #   - ./logs:/app/logs

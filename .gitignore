@@ -1,0 +1,38 @@
+# Logs
+*.log
+app.log
+logs/
+
+# Reports
+*.csv
+*.html
+analysis.json
+alerts.json
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment
+.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+.DS_Store
+
+# Test outputs
+test*.json
+test*.csv
+test*.html
