@@ -3,12 +3,19 @@ dotenv.config();
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
 import { db, initDatabase, all, get, run } from "./database/db.js";
 import { register, login, verifyToken, verifyAdmin } from "./auth.js";
+import { 
+  ipBanMiddleware, 
+  authRateLimitMiddleware, 
+  accountLockMiddleware,
+  getBruteForceStats,
+  getTopBannedIps
+} from "./bruteForceProtection.js";
+import { sendTestAlert } from "./discordNotifier.js";
 import { startExam, submitExam, getExamHistory, getExamReview, getDomainStats } from "./examService.js";
 import { getUserAnalytics, getDomainPerformance, getProgressOverTime } from "./analyticsService.js";
 import { startStudySession, submitStudyAnswer, getAvailableDomains, getStudyHistory } from "./studyService.js";
@@ -46,6 +53,34 @@ function toJsonString(value) {
   return typeof value === 'string' ? JSON.stringify(value) : JSON.stringify(value);
 }
 
+// BRUTE-FORCE PROTECTION: Apply IP ban check ONLY to auth/API routes (not admin dashboard)
+// This allows analysts to access the dashboard even if their IP was banned
+app.use((req, res, next) => {
+  // Exempt admin/monitoring routes from IP ban
+  const exemptPaths = [
+    '/admin',
+    '/admin.html',
+    '/admin-brute-force.html',
+    '/admin-users.html',
+    '/admin-feedback.html',
+    '/api/admin',
+    '/styles.css',
+    '/app.js',
+    '/admin.js'
+  ];
+  
+  // Check if path is exempt (admin/monitoring)
+  const isExempt = exemptPaths.some(path => req.path.startsWith(path));
+  
+  if (isExempt) {
+    // Allow admin access - skip ban check
+    return next();
+  }
+  
+  // For non-exempt paths, apply IP ban middleware
+  return ipBanMiddleware(req, res, next);
+});
+
 // Request logging middleware (before other middleware)
 app.use((req, res, next) => {
   const requestId = Math.random().toString(36).substring(7);
@@ -62,38 +97,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Rate limiting for auth endpoints (skip for admins)
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 requests per window
-  message: { error: 'Too many requests, please try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: async (req) => {
-    // Check if user is trying to login and is admin
-    if (req.body && req.body.email) {
-      const email = req.body.email.toLowerCase();
-      try {
-        const user = await get('SELECT role FROM users WHERE email = ? AND deleted_at IS NULL', [email]);
-        return user && user.role === 'admin';
-      } catch {
-        return false;
-      }
-    }
-    return false;
-  }
-});
-
-// Rate limiting for general API endpoints
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per window
-  message: { error: 'Too many requests, please slow down.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// Middleware
+// Middleware (Old express-rate-limit removed, using custom brute-force protection)
 app.use(cors());
 app.use(helmet({
   contentSecurityPolicy: {
@@ -108,9 +112,6 @@ app.use(helmet({
 }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
-
-// Apply general rate limiting to API routes
-app.use('/api/', apiLimiter);
 
 // Initialize database
 initDatabase();
@@ -196,7 +197,7 @@ app.get('/api/health', async (req, res) => {
 });
 
 // Authentication endpoints
-app.post('/api/auth/register', authLimiter, validateRegistration, async (req, res) => {
+app.post('/api/auth/register', authRateLimitMiddleware, validateRegistration, async (req, res) => {
   try {
     const { email, password } = req.body;
     const result = await register(email, password, req);
@@ -206,7 +207,7 @@ app.post('/api/auth/register', authLimiter, validateRegistration, async (req, re
   }
 });
 
-app.post('/api/auth/login', authLimiter, validateLogin, async (req, res) => {
+app.post('/api/auth/login', authRateLimitMiddleware, accountLockMiddleware, validateLogin, async (req, res) => {
   try {
     const { email, password } = req.body;
     const result = await login(email, password, req);
@@ -845,6 +846,61 @@ app.get('/api/admin/audit-logs', verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
+// Admin: Get brute-force protection stats
+app.get('/api/admin/brute-force-stats', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const stats = getBruteForceStats();
+    const topBannedIps = await getTopBannedIps(20);
+    
+    // Flatten stats for easier dashboard consumption
+    res.json({
+      timestamp: stats.timestamp,
+      active_bans: stats.ban_manager.active_bans,
+      escalated_bans: stats.ban_manager.escalated_bans,
+      active_account_locks: stats.account_locker.active_locks,
+      tracked_ips: stats.shared_ip_detector.tracked_ips,
+      shared_ips_detected: stats.shared_ip_detector.shared_ips_detected,
+      tracked_failures: stats.account_locker.tracked_failures,
+      tracked_ban_history: stats.ban_manager.tracked_ban_history,
+      memory_usage_mb: stats.memory_usage_mb,
+      config: stats.config,
+      top_banned_ips: topBannedIps.map(ban => ({
+        ...ban,
+        duration_seconds: Math.round((new Date(ban.expires_at) - Date.now()) / 1000)
+      }))
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Test Discord webhook
+app.post('/api/admin/discord-test', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const { severity } = req.body;
+    const testSeverity = ['LOW', 'MEDIUM', 'HIGH'].includes(severity) ? severity : 'MEDIUM';
+    
+    const success = await sendTestAlert(testSeverity);
+    
+    if (success) {
+      res.json({ 
+        success: true, 
+        message: `Test ${testSeverity} alert sent successfully to Discord` 
+      });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to send Discord alert. Check DISCORD_WEBHOOK_URL in .env' 
+      });
+    }
+  } catch (err) {
+    res.status(500).json({ 
+      success: false, 
+      error: err.message 
+    });
+  }
+});
+
 // Admin: Manually trigger data cleanup
 app.post('/api/admin/cleanup', verifyToken, verifyAdmin, async (req, res) => {
   try {
@@ -983,21 +1039,8 @@ app.delete('/api/admin/attempts/:id', verifyToken, verifyAdmin, async (req, res)
   }
 });
 
-// Rate limiter for feedback (max 3 submissions per 15 minutes per user)
-const feedbackLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 3,
-  message: { error: 'Too many feedback submissions. Please try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req, res) => {
-    // Rate limit by user ID only (authentication required anyway)
-    return `feedback-${req.user?.id || 'anonymous'}`;
-  }
-});
-
 // Feedback endpoints
-app.post('/api/feedback', verifyToken, feedbackLimiter, async (req, res) => {
+app.post('/api/feedback', verifyToken, async (req, res) => {
   try {
     const { message, rating } = req.body;
     
