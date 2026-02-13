@@ -401,16 +401,27 @@
       statusEl.classList.add('updating');
 
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          showError('Not authenticated. Please log in.');
+        // Check for both JWT token (from login) and admin token (from admin panel)
+        const jwtToken = localStorage.getItem('token');
+        const adminToken = localStorage.getItem('secplus_admin_token_v1');
+        
+        if (!jwtToken && !adminToken) {
+          showError('Not authenticated. Please enter the ADMIN_TOKEN on the admin page first, then come back here.');
+          statusEl.textContent = 'Authentication required';
+          statusEl.classList.remove('updating');
           return;
         }
 
+        // Use whichever token is available (prefer JWT, fallback to admin token)
+        const headers = {};
+        if (jwtToken) {
+          headers['Authorization'] = `Bearer ${jwtToken}`;
+        } else if (adminToken) {
+          headers['x-admin-token'] = adminToken;
+        }
+
         const response = await fetch('/api/admin/brute-force-stats', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          headers: headers
         });
 
         if (!response.ok) {
@@ -533,18 +544,28 @@
       }
 
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
+        // Check for both JWT token and admin token
+        const jwtToken = localStorage.getItem('token');
+        const adminToken = localStorage.getItem('secplus_admin_token_v1');
+        
+        if (!jwtToken && !adminToken) {
           showError('Not authenticated. Please log in.');
           return;
         }
 
+        // Build headers with whichever token is available
+        const headers = {
+          'Content-Type': 'application/json'
+        };
+        if (jwtToken) {
+          headers['Authorization'] = `Bearer ${jwtToken}`;
+        } else if (adminToken) {
+          headers['x-admin-token'] = adminToken;
+        }
+
         const response = await fetch('/api/admin/unban-ip', {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
+          headers: headers,
           body: JSON.stringify({ ip_hash: ipHash })
         });
 
