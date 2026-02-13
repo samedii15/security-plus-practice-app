@@ -318,6 +318,38 @@
         </tbody>
       </table>
     </div>
+
+    <!-- Audit Logs Section -->
+    <div class="table-container" style="margin-top: 30px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3>📋 Authentication & Security Audit Logs</h3>
+        <div>
+          <label for="logLimit" style="margin-right: 10px;">Show:</label>
+          <select id="logLimit" onchange="refreshData()" style="padding: 5px 10px; border-radius: 4px; border: 1px solid #ddd;">
+            <option value="50">50 logs</option>
+            <option value="100" selected>100 logs</option>
+            <option value="200">200 logs</option>
+            <option value="500">500 logs</option>
+          </select>
+        </div>
+      </div>
+      <table class="ban-table">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Event Type</th>
+            <th>User</th>
+            <th>IP Address</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody id="auditLogsBody">
+          <tr>
+            <td colspan="5" style="text-align: center; color: #999;">Loading audit logs...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <script>
@@ -431,6 +463,17 @@
         const data = await response.json();
         updateDashboard(data);
         
+        // Fetch audit logs
+        const logLimit = document.getElementById('logLimit').value || 100;
+        const logsResponse = await fetch(`/api/admin/audit-logs?limit=${logLimit}`, {
+          headers: headers
+        });
+        
+        if (logsResponse.ok) {
+          const logs = await logsResponse.json();
+          updateAuditLogs(logs);
+        }
+        
         const now = new Date().toLocaleTimeString();
         statusEl.textContent = `Last updated: ${now}`;
         statusEl.classList.remove('updating');
@@ -504,6 +547,71 @@
             <td>
               ${isActive ? `<button class="unban-btn" onclick="unbanIp('${ban.ip_hash}')">🔓 Unban</button>` : '<span style="color: #666;">—</span>'}
             </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Update audit logs table
+    function updateAuditLogs(logs) {
+      const tbody = document.getElementById('auditLogsBody');
+      
+      if (logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #999;">No audit logs found</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = logs.map(log => {
+        const timestamp = new Date(log.created_at).toLocaleString();
+        const eventType = log.event_type || 'UNKNOWN';
+        const userEmail = log.user_email || (log.user_id ? `User #${log.user_id}` : '—');
+        const ipAddress = log.ip_address || '—';
+        
+        // Format details based on event type
+        let details = '';
+        try {
+          const detailsObj = typeof log.details === 'string' ? JSON.parse(log.details) : log.details;
+          
+          if (eventType === 'LOGIN_SUCCESS') {
+            details = '✅ Login successful';
+          } else if (eventType === 'LOGIN_FAILURE') {
+            details = `❌ Login failed: ${detailsObj.reason || 'Invalid credentials'}`;
+          } else if (eventType === 'REGISTER') {
+            details = '📝 New user registration';
+          } else if (eventType === 'IP_BAN_TRIGGERED') {
+            details = `🚫 IP banned (${detailsObj.attempt_count || 'N/A'} attempts)`;
+          } else if (eventType === 'ACCOUNT_LOCKED') {
+            details = `🔒 Account locked (${detailsObj.failed_attempts || 'N/A'} failures)`;
+          } else if (eventType === 'ACCOUNT_UNLOCKED') {
+            details = '🔓 Account unlocked';
+          } else if (eventType === 'IP_MANUALLY_UNBANNED') {
+            details = '🔧 IP manually unbanned by admin';
+          } else if (eventType === 'ADMIN_ACCESS') {
+            details = detailsObj.allowed ? '✅ Admin access granted' : '⛔ Admin access denied';
+          } else {
+            details = JSON.stringify(detailsObj).substring(0, 100);
+          }
+        } catch (e) {
+          details = log.details ? String(log.details).substring(0, 100) : '—';
+        }
+        
+        // Color code event types
+        let eventClass = '';
+        if (eventType.includes('FAILURE') || eventType.includes('BAN') || eventType.includes('LOCKED')) {
+          eventClass = 'style="color: #dc2626; font-weight: bold;"';
+        } else if (eventType.includes('SUCCESS') || eventType.includes('UNLOCKED')) {
+          eventClass = 'style="color: #16a34a; font-weight: bold;"';
+        } else if (eventType.includes('ADMIN')) {
+          eventClass = 'style="color: #7c3aed; font-weight: bold;"';
+        }
+
+        return `
+          <tr>
+            <td style="white-space: nowrap;">${timestamp}</td>
+            <td ${eventClass}>${eventType}</td>
+            <td>${userEmail}</td>
+            <td><code>${ipAddress}</code></td>
+            <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">${details}</td>
           </tr>
         `;
       }).join('');
