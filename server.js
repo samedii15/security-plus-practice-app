@@ -13,7 +13,8 @@ import {
   authRateLimitMiddleware, 
   accountLockMiddleware,
   getBruteForceStats,
-  getTopBannedIps
+  getTopBannedIps,
+  unbanIp
 } from "./bruteForceProtection.js";
 import { sendTestAlert } from "./discordNotifier.js";
 import { startExam, submitExam, getExamHistory, getExamReview, getDomainStats } from "./examService.js";
@@ -869,6 +870,34 @@ app.get('/api/admin/brute-force-stats', verifyToken, verifyAdmin, async (req, re
         duration_seconds: Math.round((new Date(ban.expires_at) - Date.now()) / 1000)
       }))
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Manually unban an IP
+app.post('/api/admin/unban-ip', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const { ip_hash } = req.body;
+    
+    if (!ip_hash) {
+      return res.status(400).json({ error: 'ip_hash is required' });
+    }
+    
+    const unbanned = unbanIp(ip_hash);
+    
+    if (unbanned) {
+      res.json({ 
+        success: true, 
+        message: 'IP unbanned successfully',
+        ip_hash 
+      });
+    } else {
+      res.status(404).json({ 
+        success: false, 
+        error: 'IP ban not found' 
+      });
+    }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

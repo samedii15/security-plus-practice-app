@@ -191,6 +191,29 @@
       background: #d1d5db;
     }
 
+    .unban-btn {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85em;
+      font-weight: 600;
+      transition: all 0.2s;
+      box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+    }
+
+    .unban-btn:hover {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
+    }
+
+    .unban-btn:active {
+      transform: translateY(0);
+    }
+
     .error-message {
       background: #fee2e2;
       color: #991b1b;
@@ -285,11 +308,12 @@
             <th>Expires At</th>
             <th>Status</th>
             <th>Total Attempts</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody id="banTableBody">
           <tr>
-            <td colspan="6" style="text-align: center; color: #999;">Loading data...</td>
+            <td colspan="7" style="text-align: center; color: #999;">Loading data...</td>
           </tr>
         </tbody>
       </table>
@@ -439,7 +463,7 @@
       const tbody = document.getElementById('banTableBody');
       
       if (bans.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">No active bans</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">No active bans</td></tr>';
         return;
       }
 
@@ -466,6 +490,9 @@
             <td>${expiresAt}</td>
             <td><span class="status-badge ${statusClass}">${statusText}</span></td>
             <td>${ban.attempt_count || 'N/A'}</td>
+            <td>
+              ${isActive ? `<button class="unban-btn" onclick="unbanIp('${ban.ip_hash}')">🔓 Unban</button>` : '<span style="color: #666;">—</span>'}
+            </td>
           </tr>
         `;
       }).join('');
@@ -496,6 +523,47 @@
       if (refreshInterval) {
         clearInterval(refreshInterval);
         refreshInterval = null;
+      }
+    }
+
+    // Unban an IP
+    async function unbanIp(ipHash) {
+      if (!confirm(`Are you sure you want to unban this IP?\n\nIP Hash: ${ipHash.substring(0, 32)}...`)) {
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          showError('Not authenticated. Please log in.');
+          return;
+        }
+
+        const response = await fetch('/api/admin/unban-ip', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ ip_hash: ipHash })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || `HTTP ${response.status}`);
+        }
+
+        // Success - refresh the dashboard
+        showError(`✅ IP unbanned successfully: ${ipHash.substring(0, 24)}...`);
+        setTimeout(() => {
+          clearError();
+          refreshData();
+        }, 2000);
+
+      } catch (err) {
+        console.error('Unban failed:', err);
+        showError(`Failed to unban IP: ${err.message}`);
       }
     }
 

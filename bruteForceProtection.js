@@ -990,6 +990,27 @@ export function getBruteForceStats() {
 }
 
 /**
+ * Manually unban an IP by its hash
+ * @param {string} ipHash - Hashed IP address
+ * @returns {boolean} - True if IP was unbanned, false if not found
+ */
+export function unbanIp(ipHash) {
+  // Find the IP entry by its hash
+  for (const [ip, ban] of banManager.bans.entries()) {
+    if (ban.ip_hash === ipHash) {
+      banManager.bans.delete(ip);
+      console.log(`[BruteForce] Manually unbanned IP: ${ipHash}`);
+      logAudit('IP_MANUALLY_UNBANNED', null, {
+        ip_hash: ipHash,
+        unbanned_at: new Date().toISOString(),
+      });
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Get top banned IPs (hashed for privacy)
  */
 export async function getTopBannedIps(limit = 10) {
