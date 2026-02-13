@@ -13,7 +13,8 @@
     .card{background:var(--card);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     input{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--text);padding:10px 12px;border-radius:12px;outline:none;min-width:320px}
-    button{cursor:pointer;border:1px solid rgba(255,255,255,.12);background:rgba(78,161,255,.15);color:var(--text);padding:10px 12px;border-radius:12px}
+    button{cursor:pointer;border:1px solid rgba(255,255,255,.12);background:rgba(78,161,255,.15);color:var(--text);padding:10px 12px;border-radius:12px;transition:all 0.2s}
+    button:hover{transform:scale(1.05);box-shadow:0 4px 8px rgba(78,161,255,0.3)}
     button.danger{background:rgba(255,92,122,.13);border-color:rgba(255,92,122,.35)}
     .muted{color:var(--muted);font-size:12px}
     table{width:100%;border-collapse:collapse}
@@ -31,6 +32,11 @@
     <div class="muted">Users + scores (from SQLite)</div>
   </div>
   <div class="row">
+    <a href="admin-brute-force.html" style="text-decoration:none">
+      <button style="background:rgba(118,75,162,.15);border-color:rgba(118,75,162,.35)">
+        🛡️ Brute-Force Dashboard
+      </button>
+    </a>
     <input id="adminToken" placeholder="ADMIN_TOKEN from .env" />
     <button id="loadBtn">Load</button>
     <button id="clearBtn" class="danger">Clear</button>
@@ -38,6 +44,18 @@
 </header>
 
 <div class="wrap">
+  <!-- PROMINENT BRUTE-FORCE DASHBOARD BANNER -->
+  <a href="admin-brute-force.html" style="text-decoration:none">
+    <div class="card" style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);border:2px solid #764ba2;cursor:pointer;padding:24px;text-align:center;box-shadow:0 8px 16px rgba(118,75,162,0.3);transition:all 0.3s">
+      <div style="font-size:48px;margin-bottom:8px">🛡️</div>
+      <h2 style="margin:0;font-size:24px;color:#fff">Brute-Force Protection Dashboard</h2>
+      <p style="margin:8px 0 0 0;color:rgba(255,255,255,0.9);font-size:14px">Monitor attacks, view banned IPs, and manage security in real-time</p>
+      <div style="margin-top:16px;padding:8px 16px;background:rgba(255,255,255,0.2);border-radius:8px;display:inline-block;font-weight:600;color:#fff">
+        Click here to open dashboard →
+      </div>
+    </div>
+  </a>
+
   <div id="status" class="card muted">Not loaded.</div>
   <div id="error" class="card err" style="display:none"></div>
 
