@@ -1,5 +1,14 @@
 import dotenv from "dotenv";
 dotenv.config();
+
+// Validate required environment variables
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL ERROR: JWT_SECRET environment variable is not set');
+  console.error('Please set JWT_SECRET in your .env file or environment variables');
+  console.error('Generate a secure secret: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"');
+  process.exit(1);
+}
+
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";

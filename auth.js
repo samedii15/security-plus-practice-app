@@ -3,6 +3,14 @@ import jwt from 'jsonwebtoken';
 import { db, run } from './database/db.js';
 import { logAudit, EventTypes } from './auditService.js';
 
+// Helper to get JWT secret with validation
+function getJwtSecret() {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is not set');
+  }
+  return process.env.JWT_SECRET;
+}
+
 // Register new user
 async function register(email, password, req = null) {
   return new Promise((resolve, reject) => {
@@ -52,7 +60,7 @@ async function register(email, password, req = null) {
               // Generate JWT token for auto-login after registration
               const token = jwt.sign(
                 { id: userId, email: email.toLowerCase(), role: role },
-                process.env.JWT_SECRET || 'default-secret-change-in-production',
+                getJwtSecret(),
                 { expiresIn: '24h' }
               );
 
@@ -127,7 +135,7 @@ async function login(email, password, req = null) {
           // Generate JWT token with role
           const token = jwt.sign(
             { id: user.id, email: user.email, role: user.role },
-            process.env.JWT_SECRET || 'default-secret-change-in-production',
+            getJwtSecret(),
             { expiresIn: '24h' }
           );
 
@@ -170,7 +178,7 @@ function verifyToken(req, res, next) {
   try {
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET || 'default-secret-change-in-production'
+      getJwtSecret()
     );
     req.user = decoded;
     next();
