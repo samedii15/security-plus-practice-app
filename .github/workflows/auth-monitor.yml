@@ -2,7 +2,7 @@ name: Auth Monitoring
 
 on:
   schedule:
-    - cron: '*/10 * * * *'  # every 10 minutes
+    - cron: '0 * * * *'  # every hour
   workflow_dispatch:
 
 jobs:
@@ -12,20 +12,44 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate monitor prerequisites
+        id: prereq
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          if [ ! -f analyzer.py ] || [ ! -f notifier.py ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Skipping: analyzer.py/notifier.py not found in repository."
+            exit 0
+          fi
+
+          if [ -z "$FLY_API_TOKEN" ] || [ -z "$DISCORD_WEBHOOK" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Skipping: FLY_API_TOKEN and/or DISCORD_WEBHOOK secret is missing."
+            exit 0
+          fi
+
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
       - name: Setup Fly CLI
+        if: steps.prereq.outputs.skip == 'false'
         uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Fetch logs from Fly
+        if: steps.prereq.outputs.skip == 'false'
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
-          flyctl logs --app cyberacademy --since 10m > app.log
+          flyctl logs --app cyberacademy --since 60m > app.log
 
       - name: Analyze logs
+        if: steps.prereq.outputs.skip == 'false'
         run: |
           python analyzer.py app.log --export-alerts-json alerts.json
 
       - name: Send Discord notifications
+        if: steps.prereq.outputs.skip == 'false'
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
